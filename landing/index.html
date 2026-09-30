@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Типы локальных экономик России</title>
+<meta name="description" content="Кластеризация 2058 муниципалитетов России на динамической атрибутированной экономической сети: данные СберИндекса и Росстата, 2023–2024.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script src="data.js"></script>
+<style>
+:root{
+  --bg:#f6f5f1; --panel:#ffffff; --ink:#16181d; --ink2:#4a505c; --ink3:#8a909b; --line:#e3e1da;
+  --accent:#1f7a55; --accent-soft:#e3f1ea; --hl:#16181d; --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+  --neg:#2f6fb3; --pos:#c0412e;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#111317; --panel:#1a1d23; --ink:#eceef2; --ink2:#b3b8c2; --ink3:#7d8390; --line:#2b2f37;
+  --accent:#4fc08d; --accent-soft:#1d3129; --hl:#ffffff; --shadow:none; --neg:#6ea8e6; --pos:#e8795f;}}
+:root[data-theme="dark"]{ --bg:#111317; --panel:#1a1d23; --ink:#eceef2; --ink2:#b3b8c2; --ink3:#7d8390; --line:#2b2f37;
+  --accent:#4fc08d; --accent-soft:#1d3129; --hl:#ffffff; --shadow:none; --neg:#6ea8e6; --pos:#e8795f;}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Manrope,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+header.hero{padding:56px 0 28px}
+.eyebrow{font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:clamp(30px,4.4vw,54px);line-height:1.05;margin:14px 0 16px;font-weight:800;letter-spacing:-.02em;max-width:900px}
+.lead{font-size:18px;line-height:1.55;color:var(--ink2);max-width:780px;margin:0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:30px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.kpi b{display:block;font-size:30px;font-weight:800;letter-spacing:-.02em}
+.kpi span{font-size:13px;color:var(--ink2)}
+section{padding:40px 0}
+h2{font-size:28px;letter-spacing:-.01em;margin:0 0 8px;font-weight:800}
+.sub{color:var(--ink2);margin:0 0 20px;max-width:820px;line-height:1.55}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+nav.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;gap:18px;align-items:center;height:52px;overflow-x:auto;white-space:nowrap}
+nav.top a{color:var(--ink2);text-decoration:none;font-weight:600;font-size:14px}
+nav.top a:hover{color:var(--ink)}
+nav.top .brand{color:var(--ink);font-weight:800;margin-right:auto}
+#themeBtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
+
+/* карта */
+.mapgrid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
+@media (max-width:980px){.mapgrid{grid-template-columns:1fr}}
+.mapbox{position:relative;overflow:hidden;padding:0}
+#map{width:100%;height:auto;display:block;cursor:grab;touch-action:none}
+#map path{stroke:var(--panel);stroke-width:.25;vector-effect:non-scaling-stroke;transition:fill .35s ease,opacity .25s}
+#map path.dim{opacity:.13}
+#map path.sel{stroke:var(--hl);stroke-width:1.6}
+.maptools{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.maptools input[type=range]{flex:1;min-width:160px;accent-color:var(--accent)}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:9px;padding:6px 12px;font:600 13px Manrope;cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.month{font:600 14px "JetBrains Mono";min-width:78px}
+#search{flex:1 1 180px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:9px;padding:7px 10px;font:inherit;font-size:13px}
+.sugg{position:absolute;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);max-height:260px;overflow:auto;width:320px}
+.sugg div{padding:7px 10px;font-size:13px;cursor:pointer}.sugg div:hover{background:var(--accent-soft)}
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--line)}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:12px;padding:4px 9px;border-radius:99px;border:1px solid var(--line);cursor:pointer;user-select:none;background:var(--panel)}
+.chip i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.chip.off{opacity:.35}
+.tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:10px;padding:8px 10px;font-size:12px;max-width:260px;display:none;z-index:6}
+.panel{padding:16px 18px;max-height:720px;overflow:auto}
+.panel h3{margin:0 0 2px;font-size:19px}
+.muted{color:var(--ink3);font-size:12.5px}
+.strip{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin:10px 0 4px}
+.strip div{height:18px;border-radius:3px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13px;margin:10px 0}
+.kv span:nth-child(2n){font-family:"JetBrains Mono";font-size:12.5px;text-align:right}
+.bars .row{display:grid;grid-template-columns:120px 1fr 44px;gap:8px;align-items:center;font-size:12px;margin:3px 0}
+.bars .bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bars .bar i{display:block;height:100%;background:var(--accent)}
+.twin{display:block;font-size:13px;padding:4px 0;cursor:pointer;color:var(--accent)}
+.hint{font-size:13px;color:var(--ink2);line-height:1.5}
+
+/* кластеры */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.ccard{padding:16px 18px;border-top:5px solid}
+.ccard h4{margin:6px 0 6px;font-size:17px;line-height:1.25}
+.ccard p{font-size:13.5px;line-height:1.5;color:var(--ink2);margin:0 0 10px}
+.sig{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0}
+.sig span{font-size:11.5px;padding:3px 7px;border-radius:6px;background:var(--bg);border:1px solid var(--line)}
+.sig span.p{color:var(--pos)} .sig span.n{color:var(--neg)}
+.ex{font-size:12px;color:var(--ink3);line-height:1.45}
+
+/* ДНК */
+.dna{overflow-x:auto;padding:10px}
+.dna table{border-collapse:separate;border-spacing:2px;font-size:12px}
+.dna th{font-weight:600;color:var(--ink2);text-align:left;padding:2px 6px;white-space:nowrap}
+.dna th.v{writing-mode:vertical-rl;transform:rotate(180deg);height:200px;vertical-align:bottom;text-align:left}
+.dna td{width:34px;height:26px;text-align:center;border-radius:4px;font:11px "JetBrains Mono"}
+
+.two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+@media (max-width:980px){.two{grid-template-columns:1fr}}
+#sankey text{font-size:11px;fill:var(--ink2)}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th,table.t td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right}
+table.t th:first-child,table.t td:first-child{text-align:left}
+table.t th{color:var(--ink2);font-weight:600}
+table.t tr.best td{background:var(--accent-soft);font-weight:700}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:99px;padding:5px 12px;font:600 13px Manrope;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.method{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.method .card{padding:16px 18px}
+.method h4{margin:0 0 6px}
+.method p,.method li{font-size:13.5px;line-height:1.55;color:var(--ink2)}
+.formula{font:12.5px "JetBrains Mono";background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0;overflow-x:auto;white-space:nowrap}
+footer{padding:40px 0 60px;color:var(--ink3);font-size:12.5px;line-height:1.6;border-top:1px solid var(--line);margin-top:30px}
+canvas#net{width:100%;height:520px;display:block}
+</style>
+</head>
+<body>
+<nav class="top"><div class="wrap">
+  <span class="brand">Типы локальных экономик</span>
+  <a href="#map-s">Карта</a><a href="#types">Типы</a><a href="#dyn">Динамика</a><a href="#net-s">Сеть</a><a href="#method">Методология</a>
+  <button id="themeBtn" aria-label="Переключить тему">◐</button>
+</div></nav>
+
+<header class="hero wrap">
+  <div class="eyebrow">Динамическая атрибутированная сеть · 2023–2024</div>
+  <h1 id="h1">Экономическое пространство России: из каких типов локальных экономик оно состоит</h1>
+  <p class="lead" id="lead"></p>
+  <div class="kpis" id="kpis"></div>
+</header>
+
+<section id="map-s"><div class="wrap">
+  <h2>Карта типов</h2>
+  <p class="sub">Каждый муниципалитет окрашен в цвет своего типа в выбранном месяце. Нажмите «▶», чтобы увидеть, как меняется карта в течение двух лет: сезонные переходы заметнее всего летом. Щелчок по муниципалитету открывает его карточку. Колесо мыши или щипок увеличивают карту. Москва и Санкт-Петербург остаются пустыми: их внутригородские территории — части единого рынка труда, и они разобраны отдельно в отчёте.</p>
+  <div class="mapgrid">
+    <div class="card mapbox">
+      <div class="maptools">
+        <button class="btn primary" id="play">▶</button>
+        <span class="month" id="mlabel"></span>
+        <input type="range" id="slider" min="0" step="1">
+        <input id="search" placeholder="Найти муниципалитет…" autocomplete="off">
+        <button class="btn" id="reset">⤢</button>
+      </div>
+      <div id="sugg" class="sugg" style="display:none"></div>
+      <svg id="map"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="card panel" id="panel"><p class="hint">Выберите муниципалитет на карте или через поиск. В карточке будут его тип в каждом месяце, структура трат и занятости, сравнение с медианой его типа и <b>экономические двойники</b>: самые похожие по атрибутам муниципалитеты из других регионов. Это готовый список для сравнения территорий и переноса практик.</p></div>
+  </div>
+</div></section>
+
+<section id="types"><div class="wrap">
+  <h2>Типы локальных экономик</h2>
+  <p class="sub">Типы описаны по медианным значениям признаков. В метках показаны самые сильные отклонения от среднего по всем МО: <span style="color:var(--pos)">▲</span> выше, <span style="color:var(--neg)">▼</span> ниже.</p>
+  <div class="cgrid" id="cgrid"></div>
+  <h3 style="margin:34px 0 10px">«ДНК» типов</h3>
+  <p class="sub">Среднее z-отклонение каждого признака внутри типа. Строки читаются как профиль экономики, столбцы показывают, какие признаки разделяют типы.</p>
+  <div class="card dna" id="dna"></div>
+</div></section>
+
+<section id="dyn"><div class="wrap">
+  <h2>Как типы меняются во времени</h2>
+  <p class="sub">Потоки муниципалитетов между типами по кварталам. Толщина потока равна числу МО. Большинство территорий сохраняют тип. Переходы концентрируются на границах между типами и повторяются по сезонам.</p>
+  <div class="two">
+    <div class="card" style="padding:12px"><svg id="sankey" width="100%" height="460"></svg></div>
+    <div class="card" style="padding:16px">
+      <h4 style="margin:0 0 6px">Доля МО, сменивших тип за месяц</h4>
+      <svg id="switch" width="100%" height="200"></svg>
+      <div id="tstats" class="kv"></div>
+      <div id="events" class="hint"></div>
+    </div>
+  </div>
+  <h3 style="margin:34px 0 6px">Экономика типов во времени</h3>
+  <p class="sub">Медианы по МО с фиксированным составом каждого типа: видно, как меняется экономика типа, а не его состав.</p>
+  <div class="two" style="grid-template-columns:1fr 1fr">
+    <div class="card" style="padding:14px"><h4 style="margin:0 0 4px">Траты жителя, январь 2023 = 100 <span class="muted">(скользящее среднее за 3 мес.)</span></h4><svg id="tr1" width="100%" height="260"></svg></div>
+    <div class="card" style="padding:14px"><h4 style="margin:0 0 4px">Доля маркетплейсов в тратах</h4><svg id="tr2" width="100%" height="260"></svg></div>
+  </div>
+</div></section>
+
+<section id="net-s"><div class="wrap">
+  <h2>Сеть экономической близости</h2>
+  <p class="sub">Узлы — муниципалитеты, рёбра — 15 ближайших по атрибутам соседей (гауссово ядро с локальным масштабом), июнь 2024. Раскладка — UMAP по тем же атрибутам. Типы образуют плотные области, а «мосты» между ними — это территории переходного типа. Щелчок по узлу открывает карточку МО.</p>
+  <div class="card" style="padding:0;position:relative"><canvas id="net"></canvas><div class="tip" id="ntip"></div></div>
+</div></section>
+
+<section id="method"><div class="wrap">
+  <h2>Методология в пяти шагах</h2>
+  <div class="method" id="mcards"></div>
+  <h3 style="margin:34px 0 10px">Сравнение правил построения рёбер</h3>
+  <p class="sub">Июнь 2024, k = 8, спектральная кластеризация на графе каждого правила. Атрибутные индексы (SW, CH, S_Dbw) посчитаны в общем пространстве признаков, графовые (AVI, AVU, MQ) — на собственном графе правила.</p>
+  <div class="card" style="padding:10px;overflow-x:auto"><table class="t" id="etable"></table></div>
+  <h3 style="margin:34px 0 10px">Сравнение методов кластеризации</h3>
+  <p class="sub">Средние по 24 месяцам на основном графе. Стабильность — ARI между соседними месяцами; устойчивость — ARI при бутстрэпе 80% узлов. Зелёным выделена итоговая модель.</p>
+  <div class="card" style="padding:10px;overflow-x:auto"><table class="t" id="mtable"></table></div>
+  <h3 style="margin:34px 0 10px">Проверка надёжности</h3>
+  <p class="sub" id="robtext"></p>
+  <div class="card" style="padding:10px;overflow-x:auto"><table class="t" id="rtable"></table></div>
+</div></section>
+
+<footer><div class="wrap" id="foot"></div></footer>
+
+<script>
+const D = window.DATA;
+const PAL = ["#2E6FDB","#E0782A","#1FA187","#C43C5A","#7B5CC7","#B99A1E","#3AA3C9","#8C5A3C","#5E8C2E","#D05FA8","#6B7785","#A63A1E","#2A8C6B","#9C7FD6"];
+const K = D.clusters.length, T = D.months.length;
+const byId = new Map(D.mos.map(m => [m.id, m]));
+const CL = D.clusters;
+const fmt = d3.format(",.0f"), pct = d3.format(".0%"), f2 = d3.format(".2f");
+const MONTH_RU = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+const mlab = s => { const [y,m] = s.split("-"); return MONTH_RU[+m-1]+" "+y; };
+const FEAT_RU = D.meta.feature_ru || {};
+
+// тема
+const root = document.documentElement;
+document.getElementById("themeBtn").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+};
+
+// ---------- hero
+document.getElementById("lead").textContent = D.meta.lead || "";
+const stable = D.temporal.never_switch_share;
+const kpis = [[fmt(D.mos.length), "муниципалитетов"], [T, "месяцев наблюдений"], [K, "типов локальных экономик"],
+  [pct(stable), "МО ни разу не сменили тип"], [f2(D.temporal.ARI_consecutive), "ARI соседних месяцев"]];
+document.getElementById("kpis").innerHTML = kpis.map(([b,s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join("");
+
+// ---------- карта
+const svg = d3.select("#map").attr("viewBox", `0 0 ${D.w} ${D.h}`);
+const g = svg.append("g");
+let month = T - 1, selected = null, hidden = new Set();
+const paths = g.selectAll("path").data(D.mos.filter(m => m.p)).join("path")
+  .attr("d", d => d.p).attr("fill", d => PAL[d.L[month]]);
+const zoom = d3.zoom().scaleExtent([1, 60]).on("zoom", e => g.attr("transform", e.transform));
+svg.call(zoom);
+document.getElementById("reset").onclick = () => svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity);
+const tip = document.getElementById("tip");
+paths.on("mousemove", (e, d) => {
+  const c = CL[d.L[month]];
+  tip.innerHTML = `<b>${d.n}</b><br><span class="muted">${d.r}</span><br><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PAL[c.id]}"></i> ${c.name}<br>Траты: ${fmt(d.cons)} ₽/жит. в мес.`;
+  const box = e.currentTarget.ownerSVGElement.parentNode.getBoundingClientRect();
+  tip.style.display = "block"; tip.style.left = (e.clientX - box.left + 14) + "px"; tip.style.top = (e.clientY - box.top + 10) + "px";
+}).on("mouseleave", () => tip.style.display = "none").on("click", (e, d) => select(d.id));
+
+const slider = document.getElementById("slider");
+slider.max = T - 1; slider.value = month;
+function setMonth(t) {
+  month = t; slider.value = t; document.getElementById("mlabel").textContent = mlab(D.months[t]);
+  paths.attr("fill", d => PAL[d.L[t]]).classed("dim", d => hidden.size && !hidden.has(d.L[t]));
+}
+slider.oninput = () => setMonth(+slider.value);
+let timer = null;
+document.getElementById("play").onclick = function () {
+  if (timer) { clearInterval(timer); timer = null; this.textContent = "▶"; return; }
+  this.textContent = "❚❚";
+  if (month === T - 1) setMonth(0);
+  timer = setInterval(() => { if (month >= T - 1) { clearInterval(timer); timer = null; document.getElementById("play").textContent = "▶"; return; } setMonth(month + 1); }, 650);
+};
+// легенда = фильтр
+const leg = d3.select("#legend").selectAll(".chip").data(CL).join("div").attr("class", "chip")
+  .html(c => `<i style="background:${PAL[c.id]}"></i>${c.id + 1}. ${c.short || c.name}`)
+  .on("click", function (e, c) {
+    hidden.has(c.id) ? hidden.delete(c.id) : hidden.add(c.id);
+    d3.select("#legend").selectAll(".chip").classed("off", x => hidden.size && !hidden.has(x.id));
+    setMonth(month);
+  });
+setMonth(month);
+
+// поиск
+const search = document.getElementById("search"), sugg = document.getElementById("sugg");
+search.oninput = () => {
+  const q = search.value.trim().toLowerCase();
+  if (q.length < 2) { sugg.style.display = "none"; return; }
+  const hits = D.mos.filter(m => m.n.toLowerCase().includes(q)).slice(0, 12);
+  sugg.innerHTML = hits.map(m => `<div data-id="${m.id}">${m.n} <span class="muted">· ${m.r}</span></div>`).join("") || `<div class="muted">Ничего не найдено</div>`;
+  const r = search.getBoundingClientRect(), p = search.closest(".mapbox").getBoundingClientRect();
+  sugg.style.left = (r.left - p.left) + "px"; sugg.style.top = (r.bottom - p.top + 4) + "px"; sugg.style.display = "block";
+};
+sugg.onclick = e => { const id = +e.target.closest("[data-id]")?.dataset.id; if (id) { select(id, true); sugg.style.display = "none"; search.value = ""; } };
+
+const SH_RU = {food:"Продукты",health:"Здоровье",catering:"Общепит",transport:"Транспорт",marketplaces:"Маркетплейсы",other:"Прочее"};
+const EMP_RU = D.meta.sector_ru || {};
+function bars(obj, labels, ref) {
+  return `<div class="bars">` + Object.entries(obj).filter(([k,v]) => v != null).sort((a,b)=>b[1]-a[1]).map(([k, v]) =>
+    `<div class="row"><span>${labels[k] || k}</span><span class="bar"><i style="width:${Math.min(100, v * 100 / (ref||1))}%"></i></span><span class="muted" style="text-align:right">${pct(v)}</span></div>`).join("") + `</div>`;
+}
+function select(id, zoomTo) {
+  const m = byId.get(id); if (!m) return;
+  selected = id; paths.classed("sel", d => d.id === id);
+  paths.filter(d => d.id === id).raise();
+  const c = CL[m.L[month]];
+  const cp = c.prof;
+  const counts = d3.rollup(m.L, v => v.length, x => x);
+  const main = [...counts].sort((a,b)=>b[1]-a[1])[0][0];
+  document.getElementById("panel").innerHTML = `
+    <h3>${m.n}</h3><div class="muted">${m.r} · ${m.t}</div>
+    <div class="strip">${m.L.map((l,i)=>`<div title="${mlab(D.months[i])}: ${CL[l].name}" style="background:${PAL[l]}"></div>`).join("")}</div>
+    <div class="muted">янв 2023 → дек 2024 · смен типа: ${m.sw}</div>
+    <p style="margin:10px 0 0;font-size:14px"><b style="color:${PAL[main]}">■</b> Основной тип: <b>${CL[main].name}</b></p>
+    <div class="kv">
+      <span>Безналичные траты жителя, ₽/мес (дек 2024)</span><span>${fmt(m.cons)} <span class="muted">(тип: ${fmt(CL[main].prof.cons_total_rub)})</span></span>
+      <span>Население</span><span>${fmt(m.pop)}</span>
+      <span>Зарплата к медиане МО</span><span>${m.wage != null ? f2(m.wage) + "×" : "—"}</span>
+      <span>Индекс доступности рынков</span><span>${m.ma ?? "—"}</span>
+      <span>Сезонная амплитуда трат</span><span>${f2(m.sa)}</span>
+    </div>
+    <h4 style="margin:12px 0 4px">Структура трат</h4>${bars(m.sh, SH_RU, 0.7)}
+    <h4 style="margin:12px 0 4px">Структура занятости${m.imp > 0 ? ' <span class="muted">(частично восстановлена)</span>' : ''}</h4>${bars(Object.fromEntries(Object.entries(m.emp).sort((a,b)=>b[1]-a[1]).slice(0,6)), EMP_RU, 0.6)}
+    <h4 style="margin:14px 0 4px">Экономические двойники из других регионов</h4>
+    ${m.tw.map(t => { const x = byId.get(t); return x ? `<span class="twin" data-id="${t}">${x.n} <span class="muted">· ${x.r}</span></span>` : ""; }).join("")}`;
+  document.querySelectorAll("#panel .twin").forEach(el => el.onclick = () => select(+el.dataset.id, true));
+  if (zoomTo) {
+    const el = paths.filter(d => d.id === id).node();
+    if (el) {
+      const b = el.getBBox(), cx = b.x + b.width / 2, cy = b.y + b.height / 2;
+      const s = Math.max(1, Math.min(40, 0.35 / Math.max(b.width / D.w, b.height / D.h)));
+      svg.transition().duration(700).call(zoom.transform, d3.zoomIdentity.translate(D.w/2 - s*cx, D.h/2 - s*cy).scale(s));
+    }
+  }
+}
+
+// ---------- карточки типов
+const ZF = D.meta.signature_features || [];
+document.getElementById("cgrid").innerHTML = CL.map(c => {
+  const sig = ZF.map(f => [f, c.z[f]]).filter(x => x[1] != null).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,5)
+    .map(([f,v]) => `<span class="${v>0?'p':'n'}">${v>0?'▲':'▼'} ${FEAT_RU[f]||f}</span>`).join("");
+  return `<div class="card ccard" style="border-top-color:${PAL[c.id]}">
+    <div class="muted">Тип ${c.id+1} · ≈${c.size} МО · траты ${fmt(c.prof.cons_total_rub)} ₽/мес</div>
+    <h4>${c.name}</h4><p>${c.desc||""}</p><div class="sig">${sig}</div>
+    <div class="ex"><b>Примеры:</b> ${c.examples.slice(0,6).join(", ")}</div></div>`;
+}).join("");
+
+// ДНК
+(function () {
+  const cols = D.meta.dna_features || ZF;
+  const col = d3.scaleDiverging(t => d3.interpolateRdBu(1 - t)).domain([-1.5, 0, 1.5]).clamp(true);
+  let h = `<table><tr><th></th>${cols.map(c => `<th class="v">${FEAT_RU[c]||c}</th>`).join("")}</tr>`;
+  CL.forEach(c => { h += `<tr><th><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${PAL[c.id]}"></i> ${c.id+1}. ${c.short||c.name}</th>` +
+    cols.map(f => { const v = c.z[f]; return `<td style="background:${col(v)};color:${Math.abs(v)>0.9?'#fff':'#222'}" title="${FEAT_RU[f]||f}: ${f2(v)}">${v>0?'+':''}${d3.format(".1f")(v)}</td>`; }).join("") + `</tr>`; });
+  document.getElementById("dna").innerHTML = h + `</table>`;
+})();
+
+// ---------- аллювиальная диаграмма
+(function () {
+  const el = document.getElementById("sankey"), W = el.clientWidth || 700, H = 460;
+  const s = d3.select(el).attr("viewBox", `0 0 ${W} ${H}`);
+  const nodes = [], idx = new Map();
+  const key = (t, c) => t + ":" + c;
+  D.flows.forEach(([a, i, b, j]) => { [[a,i],[b,j]].forEach(([t,c]) => { if (!idx.has(key(t,c))) { idx.set(key(t,c), nodes.length); nodes.push({t, c}); } }); });
+  const links = D.flows.map(([a,i,b,j,v]) => ({source: idx.get(key(a,i)), target: idx.get(key(b,j)), value: v, c: i}));
+  const sk = d3.sankey().nodeWidth(10).nodePadding(4).nodeSort((x, y) => x.c - y.c).extent([[4, 22], [W - 4, H - 4]]);
+  const G = sk({nodes: nodes.map(d => ({...d})), links: links.map(d => ({...d}))});
+  s.append("g").selectAll("path").data(G.links).join("path").attr("d", d3.sankeyLinkHorizontal())
+    .attr("stroke", d => PAL[d.c]).attr("stroke-opacity", d => d.source.c === d.target.c ? .28 : .6)
+    .attr("stroke-width", d => Math.max(1, d.width)).attr("fill", "none")
+    .append("title").text(d => `${CL[d.source.c].name} → ${CL[d.target.c].name}: ${d.value} МО`);
+  s.append("g").selectAll("rect").data(G.nodes).join("rect").attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => d.x1 - d.x0).attr("height", d => Math.max(1, d.y1 - d.y0)).attr("fill", d => PAL[d.c]);
+  const qs = [...new Set(G.nodes.map(d => d.t))];
+  s.append("g").selectAll("text").data(qs).join("text").attr("x", t => G.nodes.find(n => n.t === t).x0).attr("y", 12)
+    .attr("text-anchor", (t, i) => i === qs.length - 1 ? "end" : i ? "middle" : "start").text(t => mlab(D.months[t]));
+})();
+
+// доля переходов
+(function () {
+  const el = document.getElementById("switch"), W = el.clientWidth || 380, H = 200, m = {l: 34, r: 8, t: 10, b: 28};
+  const s = d3.select(el).attr("viewBox", `0 0 ${W} ${H}`);
+  const v = D.temporal.switch_series;
+  const x = d3.scaleLinear().domain([1, T - 1]).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain([0, d3.max(v) * 1.15]).nice().range([H - m.b, m.t]);
+  s.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(6).tickFormat(i => mlab(D.months[i]))).attr("color", "var(--ink3)");
+  s.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(4).tickFormat(d3.format(".0%"))).attr("color", "var(--ink3)");
+  s.append("path").datum(v).attr("fill", "none").attr("stroke", "var(--accent)").attr("stroke-width", 2)
+    .attr("d", d3.line().x((d, i) => x(i + 1)).y(d => y(d)));
+  s.selectAll("circle").data(v).join("circle").attr("cx", (d, i) => x(i + 1)).attr("cy", d => y(d)).attr("r", 3).attr("fill", "var(--accent)")
+    .append("title").text((d, i) => `${mlab(D.months[i])} → ${mlab(D.months[i+1])}: ${d3.format(".1%")(d)}`);
+  const tm = D.temporal;
+  document.getElementById("tstats").innerHTML = `
+    <span>ARI между соседними месяцами</span><span>${f2(tm.ARI_consecutive)}</span>
+    <span>ARI янв 2023 ↔ дек 2024</span><span>${f2(tm.ARI_first_last)}</span>
+    <span>Средняя доля переходов за месяц</span><span>${d3.format(".1%")(tm.switch_rate)}</span>
+    <span>МО без единой смены типа</span><span>${pct(tm.never_switch_share)}</span>`;
+  document.getElementById("events").innerHTML = D.meta.dynamics_text || "";
+})();
+
+// ---------- траектории
+function trajChart(id, key, norm) {
+  const el = document.getElementById(id); if (!D.traj) return;
+  const W = el.clientWidth || 520, H = 260, m = {l: 40, r: 110, t: 8, b: 26};
+  const s = d3.select(el).attr("viewBox", `0 0 ${W} ${H}`);
+  const sm = v => v.map((_, i) => d3.mean(v.slice(Math.max(0, i - 1), i + 2)));
+  const series = CL.map(c => { const v = sm(D.traj[c.id][key]); return {c, v: norm ? v.map(x => x / v[0] * 100) : v.map(x => x * 100)}; });
+  const x = d3.scaleLinear().domain([0, T - 1]).range([m.l, W - m.r]);
+  const y = d3.scaleLinear().domain(d3.extent(series.flatMap(d => d.v))).nice().range([H - m.b, m.t]);
+  s.append("g").attr("transform", `translate(0,${H - m.b})`).call(d3.axisBottom(x).ticks(5).tickFormat(i => mlab(D.months[Math.round(i)]))).attr("color", "var(--ink3)");
+  s.append("g").attr("transform", `translate(${m.l},0)`).call(d3.axisLeft(y).ticks(5).tickFormat(v => norm ? v : v + "%")).attr("color", "var(--ink3)");
+  series.forEach(d => {
+    s.append("path").datum(d.v).attr("fill", "none").attr("stroke", PAL[d.c.id]).attr("stroke-width", 2)
+      .attr("d", d3.line().x((_, i) => x(i)).y(v => y(v))).append("title").text(d.c.name);
+  });
+  // подписи справа без наложений
+  const ends = series.map(d => ({c: d.c, y: y(d.v[T - 1])})).sort((a, b) => a.y - b.y);
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 11);
+  s.selectAll("text.lab").data(ends).join("text").attr("x", W - m.r + 4).attr("y", d => d.y + 4)
+    .attr("font-size", 10).attr("fill", d => PAL[d.c.id]).text(d => (d.c.id + 1) + ". " + (d.c.short || d.c.name));
+}
+trajChart("tr1", "cons_total_rub", true);
+trajChart("tr2", "share_marketplaces", false);
+
+// ---------- сеть
+(function () {
+  if (!D.emb) return;
+  const cv = document.getElementById("net"), ctx = cv.getContext("2d"), ntip = document.getElementById("ntip");
+  const E = D.emb, pts = E.xy;
+  let W, H, sx, sy;
+  function draw() {
+    const dpr = devicePixelRatio || 1; W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    sx = d3.scaleLinear().domain(d3.extent(xs)).range([20, W - 20]);
+    sy = d3.scaleLinear().domain(d3.extent(ys)).range([H - 20, 20]);
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = .08; ctx.strokeStyle = getComputedStyle(root).getPropertyValue("--ink2"); ctx.lineWidth = .6;
+    ctx.beginPath();
+    E.edges.forEach(([a, b]) => { ctx.moveTo(sx(pts[a][0]), sy(pts[a][1])); ctx.lineTo(sx(pts[b][0]), sy(pts[b][1])); });
+    ctx.stroke(); ctx.globalAlpha = .9;
+    pts.forEach((p, i) => { ctx.fillStyle = PAL[E.lab[i]]; ctx.beginPath(); ctx.arc(sx(p[0]), sy(p[1]), 2.3, 0, 7); ctx.fill(); });
+  }
+  draw(); addEventListener("resize", draw);
+  const q = d3.quadtree().x(i => sx(pts[i][0])).y(i => sy(pts[i][1]));
+  cv.addEventListener("mousemove", e => {
+    const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    q.removeAll(q.data()); q.addAll(pts.map((_, i) => i));
+    const i = q.find(x, y, 12);
+    if (i == null) { ntip.style.display = "none"; return; }
+    const m = byId.get(E.ids[i]);
+    ntip.innerHTML = `<b>${m.n}</b><br><span class="muted">${m.r}</span><br>${CL[E.lab[i]].name}`;
+    ntip.style.display = "block"; ntip.style.left = (x + 12) + "px"; ntip.style.top = (y + 8) + "px";
+  });
+  cv.addEventListener("mouseleave", () => ntip.style.display = "none");
+  cv.addEventListener("click", e => { const r = cv.getBoundingClientRect(); const i = q.find(e.clientX - r.left, e.clientY - r.top, 12);
+    if (i != null) { select(E.ids[i], true); document.getElementById("map-s").scrollIntoView({behavior: "smooth"}); } });
+})();
+
+// ---------- методология
+document.getElementById("mcards").innerHTML = (D.meta.method_cards || []).map(c =>
+  `<div class="card"><div class="eyebrow">${c.step}</div><h4>${c.title}</h4><p>${c.text}</p>${c.formula ? `<div class="formula">${c.formula}</div>` : ""}</div>`).join("");
+const RULE_RU = D.meta.rule_ru || {}, METHOD_RU = D.meta.method_ru || {};
+(function () {
+  const rows = D.edges.filter(r => r.method === "spectral");
+  const cols = [["share_same_region","Рёбер в регионе"],["median_edge_km","Медиана ребра, км"],["transitivity","Транзит."],["SW","SW ↑"],["CH","CH ↑"],["S_Dbw","S_Dbw ↓"],["AVI","AVI ↑"],["AVU","AVU ↓"],["MQ","MQ ↑"]];
+  document.getElementById("etable").innerHTML = `<tr><th>Правило рёбер</th>${cols.map(c=>`<th>${c[1]}</th>`).join("")}</tr>` +
+    rows.map(r => `<tr class="${r.rule === D.meta.main_rule ? 'best' : ''}"><td>${RULE_RU[r.rule]||r.rule}</td>${cols.map(([k]) => `<td>${k==="share_same_region"?pct(r[k]):k==="median_edge_km"?fmt(r[k]):k==="CH"?fmt(r[k]):d3.format(".3f")(r[k])}</td>`).join("")}</tr>`).join("");
+  const mc = [["SW","SW ↑"],["CH","CH ↑"],["S_Dbw","S_Dbw ↓"],["AVI","AVI ↑"],["AVU","AVU ↓"],["MQ","MQ ↑"],["ARI_consecutive","Стабильность"],["bootstrap_ARI","Устойчивость"]];
+  document.getElementById("mtable").innerHTML = `<tr><th>Метод</th>${mc.map(c=>`<th>${c[1]}</th>`).join("")}</tr>` +
+    D.methods.map(r => `<tr class="${r.method === D.meta.final_method ? 'best' : ''}"><td>${METHOD_RU[r.method]||r.method}</td>${mc.map(([k]) => `<td>${k==="CH"?fmt(r[k]):(r[k]==null||Number.isNaN(r[k]))?"—":d3.format(".3f")(r[k])}</td>`).join("")}</tr>`).join("");
+})();
+(function () {
+  if (!D.rob || !D.rob.length) return;
+  const sp = D.spat;
+  document.getElementById("robtext").innerHTML = (D.meta.robust_text || "") + (sp ? ` Пространственная проверка: у ${pct(sp.observed_same_cluster_share)} пар «соседей по дороге» тип совпадает, при случайных метках — ${pct(sp.null_mean)} (z = ${d3.format(".0f")(sp.z)}, p < 0.001).` : "");
+  document.getElementById("rtable").innerHTML = `<tr><th>Вариант</th><th>ARI с базовой моделью (июнь 2024)</th><th>ARI по всей панели</th><th>Доля переходов в мес.</th></tr>` +
+    D.rob.map(r => `<tr><td>${r.variant.replace(/^(\w+) ×/, (m, b) => ({consumption_level: "Уровень трат", consumption_structure: "Структура трат", seasonality: "Сезонность", industry: "Отрасли", labour: "Рынок труда", geography: "География"}[b] || b) + ": вес ×").replace("×0.0", "×0 (блок исключён)").replace("×0.5", "×0,5").replace("×1.5", "×1,5")}</td><td>${f2(r.ARI_ref_month)}</td><td>${f2(r.ARI_panel)}</td><td>${d3.format(".1%")(r.switch_rate)}</td></tr>`).join("");
+})();
+document.getElementById("foot").innerHTML = D.meta.footer || "";
+</script>
+</body>
+</html>
