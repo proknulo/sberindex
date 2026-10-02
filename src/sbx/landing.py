@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
-from .geo import svg_paths
+from .geo import write_geo_js
 
 
 def short_name(n: str) -> str:
@@ -42,7 +42,7 @@ def build(cfg_path: str):
     twins = json.load(open(res / "final_twins.json"))
     ids = mo.index.to_numpy()
 
-    paths, cxy, (w, h) = svg_paths(ids, Path(cfg["paths"]["raw"]))
+    write_geo_js(ids, Path(cfg["paths"]["raw"]), land)   # полигоны МО и субъектов для карты → landing/geo.js
 
     # по МО: метки по месяцам + ключевые показатели (декабрь 2024 и средние)
     last = raw.xs(months[-1], level="month")
@@ -52,7 +52,7 @@ def build(cfg_path: str):
         r, m = last.loc[tid], mean.loc[tid]
         mos.append({
             "id": int(tid), "n": mo.loc[tid, "name"], "r": mo.loc[tid, "region_name"], "t": mo.loc[tid, "mo_type"],
-            "L": L[:, i].tolist(), "p": paths.get(int(tid), ""), "c": cxy.get(int(tid)),
+            "L": L[:, i].tolist(),
             "cons": int(r["cons_total_rub"]), "pop": int(np.exp(r["log_pop"])),
             "wage": _r(np.exp(r["wage_rel"]), 3), "ma": _r(np.exp(r["log_ma"]), 0),
             "sh": {k: _r(m[f"share_{k}"], 3) for k in ["food", "health", "catering", "transport", "marketplaces", "other"]},
@@ -96,7 +96,7 @@ def build(cfg_path: str):
     rob = pd.read_csv(res / "robustness_sensitivity.csv").round(3).to_dict("records") if (res / "robustness_sensitivity.csv").exists() else []
     spat = json.load(open(res / "robustness_spatial.json")) if (res / "robustness_spatial.json").exists() else None
 
-    data = {"months": months, "w": w, "h": h, "mos": mos, "clusters": clusters, "flows": flows, "qsteps": q,
+    data = {"months": months, "mos": mos, "clusters": clusters, "flows": flows, "qsteps": q,
             "temporal": tm, "traj": traj, "adj": adj["transitions_to_two_nearest_types_share"], "rob": rob, "spat": spat,
             "methods": methods, "edges": edges, "ksel": ksel, "events": events, "emb": emb,
             "meta": names.get("meta", {})}
