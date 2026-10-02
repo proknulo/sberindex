@@ -28,7 +28,7 @@ INTRA = "внутригородская территория города фед
 
 
 def main(cfg_path):
-    cfg = yaml.safe_load(open(cfg_path))
+    cfg = yaml.safe_load(open(cfg_path, encoding="utf-8"))
     c = copy.deepcopy(cfg)
     c["data"]["exclude_types"] = []
     ds = load_all(c)

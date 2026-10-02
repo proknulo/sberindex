@@ -28,7 +28,7 @@ def _r(x, n=3):
 
 
 def build(cfg_path: str):
-    cfg = yaml.safe_load(open(cfg_path))
+    cfg = yaml.safe_load(open(cfg_path, encoding="utf-8"))
     res = Path(cfg["paths"]["results"])
     proc = Path(cfg["paths"]["processed"])
     land = Path(cfg["paths"]["landing"]); land.mkdir(parents=True, exist_ok=True)
@@ -39,7 +39,7 @@ def build(cfg_path: str):
     months = pd.read_csv(res / "final_labels.csv", index_col=0).columns.tolist()
     raw = pd.read_parquet(proc / "features_raw.parquet")
     summ = pd.read_csv(res / "final_mo_summary.csv", index_col=0)
-    twins = json.load(open(res / "final_twins.json"))
+    twins = json.load(open(res / "final_twins.json", encoding="utf-8"))
     ids = mo.index.to_numpy()
 
     write_geo_js(ids, Path(cfg["paths"]["raw"]), land)   # полигоны МО и субъектов для карты → landing/geo.js
@@ -83,18 +83,18 @@ def build(cfg_path: str):
                 if M.loc[i, j] > 0:
                     flows.append([a, int(i), b, int(j), int(M.loc[i, j])])
 
-    tm = json.load(open(res / "final_temporal.json"))
+    tm = json.load(open(res / "final_temporal.json", encoding="utf-8"))
     methods = pd.read_csv(res / "methods.csv").round(4).to_dict("records")
     edges = pd.read_csv(res / "edge_rules.csv").round(4).to_dict("records")
     ksel = pd.read_csv(res / "k_selection.csv").round(4).to_dict("records")
     events = pd.read_csv(res / "final_events.csv").to_dict("records")
-    emb = json.load(open(res / "embedding.json")) if (res / "embedding.json").exists() else None
+    emb = json.load(open(res / "embedding.json", encoding="utf-8")) if (res / "embedding.json").exists() else None
     tr = pd.read_csv(res / "final_type_trajectories.csv")
     traj = {int(c): {col: [_r(v, 4) for v in g[col]] for col in ["cons_total_rub", "share_marketplaces", "share_food", "share_catering"]}
             for c, g in tr.groupby("type")}
-    adj = json.load(open(res / "final_transition_adjacency.json"))
+    adj = json.load(open(res / "final_transition_adjacency.json", encoding="utf-8"))
     rob = pd.read_csv(res / "robustness_sensitivity.csv").round(3).to_dict("records") if (res / "robustness_sensitivity.csv").exists() else []
-    spat = json.load(open(res / "robustness_spatial.json")) if (res / "robustness_spatial.json").exists() else None
+    spat = json.load(open(res / "robustness_spatial.json", encoding="utf-8")) if (res / "robustness_spatial.json").exists() else None
 
     data = {"months": months, "mos": mos, "clusters": clusters, "flows": flows, "qsteps": q,
             "temporal": tm, "traj": traj, "adj": adj["transitions_to_two_nearest_types_share"], "rob": rob, "spat": spat,
@@ -103,6 +103,18 @@ def build(cfg_path: str):
     js = "window.DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
     (land / "data.js").write_text(js, encoding="utf-8")
     print("landing/data.js", round(len(js) / 1e6, 2), "MB")
+    stamp_version(land)
+
+
+def stamp_version(land: Path) -> None:
+    """Метка версии данных в index.html (data.js?v=…), чтобы браузеры не показывали старую копию из кэша."""
+    import hashlib
+    import re
+    h = hashlib.sha1(b"".join((land / f).read_bytes() for f in ("data.js", "geo.js") if (land / f).exists())).hexdigest()[:8]
+    idx = land / "index.html"
+    html = idx.read_text(encoding="utf-8")
+    idx.write_text(re.sub(r'(src="(?:data|geo)\.js)(\?v=[\w]+)?"', rf'\1?v={h}"', html), encoding="utf-8")
+    print("index.html: версия данных", h)
 
 
 if __name__ == "__main__":

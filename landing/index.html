@@ -11,8 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
-<script src="data.js"></script>
-<script src="geo.js"></script>
+<script src="data.js?v=da0fd380"></script>
+<script src="geo.js?v=da0fd380"></script>
 <style>
 :root{
   --bg:#ffffff; --panel:#f6f7f9; --chip:#f1f2f4; --ink:#1f2328; --ink2:#3e4550; --ink3:#616975;
@@ -38,7 +38,7 @@ h3{margin:0;font-size:19px;font-weight:600}
 .lead{margin:18px 0 0;font-size:clamp(16px,1.6vw,19px);line-height:1.55;color:var(--ink3);max-width:620px}
 .sub{margin:12px 0 0;font-size:17px;line-height:1.55;color:var(--ink3);max-width:640px}
 .muted{color:var(--ink3)}
-section{padding-top:112px}
+section{padding-top:144px}
 
 /* единые кнопки */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:22px;border:1px solid var(--line2);background:var(--bg);color:var(--ink);font:500 15px Onest,sans-serif;cursor:pointer;text-decoration:none;white-space:nowrap}
@@ -47,7 +47,7 @@ section{padding-top:112px}
 .btn.primary{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .btn.primary:hover{opacity:.88;background:var(--ink);color:var(--bg)}
 .btn svg{flex-shrink:0}
-.chip{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:20px;border:0;background:var(--bg);color:var(--ink);font:500 15px Onest,sans-serif;cursor:pointer}
+.chip{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px 0 9px;border-radius:20px;border:0;background:var(--bg);color:var(--ink);font:500 15px Onest,sans-serif;cursor:pointer}
 .chip i{width:10px;height:10px;border-radius:5px;flex-shrink:0}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
 .seg{display:inline-flex;gap:4px;padding:4px;border-radius:14px;background:var(--bg);border:1px solid var(--line)}
@@ -128,7 +128,7 @@ h4{margin:22px 0 6px;font-size:15px;font-weight:600}
 
 /* сеть */
 .netbox{margin-top:28px;background:var(--panel);border-radius:20px;position:relative;overflow:hidden}
-canvas#net{width:100%;height:480px;display:block}
+canvas#net{width:100%;height:660px;display:block}
 
 /* методы */
 .steps{margin-top:28px;border-top:1px solid var(--line)}
@@ -204,10 +204,72 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
 .kchart circle{cursor:pointer}
 .kchart circle:hover{r:7}
 
+.chip:not(:has(img)){padding-left:14px}
+.seg.one{display:inline-flex}
+
+/* анимация смены типа: старый значок трясётся и рассыпается, новый «строится» снизу вверх */
+.fx{position:absolute;pointer-events:none;z-index:4;transform:translate(-50%,-50%)}
+.fx .old{position:absolute;inset:0;animation:fx-shake .18s linear}
+.fx .shard{position:absolute;inset:0;background-size:100% 100%;animation:fx-fall .55s cubic-bezier(.5,0,.9,.5) .18s forwards}
+.fx .dust{position:absolute;left:50%;top:72%;width:7px;height:7px;border-radius:50%;background:#a8a197;opacity:0;animation:fx-dust .7s ease-out .22s}
+.fx .new{position:absolute;inset:0;background-size:100% 100%;clip-path:inset(100% 0 0 0);animation:fx-build .5s cubic-bezier(.2,.9,.3,1.25) .66s forwards}
+.fx .scaf{position:absolute;inset:8%;border:1.5px dashed var(--ink3);border-radius:50%;opacity:0;animation:fx-scaf .6s ease-out .55s}
+.fx .ring{position:absolute;inset:0;border-radius:50%;border:2px solid;opacity:0;animation:fx-ring .5s ease-out 1.05s}
+@keyframes fx-shake{0%,100%{transform:none}25%{transform:translate(-2px,1px) rotate(-7deg)}50%{transform:translate(2px,-1px) rotate(6deg)}75%{transform:translate(-1px,0) rotate(-3deg)}}
+@keyframes fx-fall{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+@keyframes fx-dust{0%{opacity:.75;transform:translate(-50%,-50%) scale(.4)}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(2.4)}}
+@keyframes fx-build{0%{clip-path:inset(100% 0 0 0);transform:translateY(5px) scale(.85)}70%{clip-path:inset(0);transform:translateY(-2px) scale(1.1)}100%{clip-path:inset(0);transform:none}}
+@keyframes fx-scaf{0%{opacity:0;transform:scale(.6)}40%{opacity:.8}100%{opacity:0;transform:scale(1.05)}}
+@keyframes fx-ring{0%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@media (prefers-reduced-motion: reduce){.fx{display:none}}
+
+/* игра */
+.game{margin-top:28px;background:var(--panel);border-radius:24px;padding:24px}
+.gamebar{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:15px;color:var(--ink3)}
+.gamebar b{color:var(--ink);font-weight:600}
+.gamegrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:32px;margin-top:20px;align-items:start}
+.clue{background:var(--bg);border-radius:16px;padding:18px 20px;margin-bottom:12px}
+.clue h4{margin:0 0 8px}
+.clue.locked{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--ink3);font-size:15px}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.opt{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 12px;border-radius:14px;border:1px solid var(--line2);background:var(--bg);color:var(--ink);font:500 15px/1.25 Onest,sans-serif;text-align:left;cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt:disabled{cursor:default}
+.opt.right{border:2px solid #1f9d55;padding:7px 11px}
+.opt.wrong{border:2px solid var(--pos);padding:7px 11px;opacity:.8}
+.opt.dim{opacity:.45}
+.verdict{margin-top:16px;padding:16px 18px;border-radius:16px;background:var(--bg);font-size:15.5px;line-height:1.55}
+.verdict b{font-weight:600}
+.gameactions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pts{display:inline-block;font-weight:600;font-size:13px;padding:2px 8px;border-radius:10px;background:var(--chip);color:var(--ink2);margin-left:6px}
+
+/* сеть-паутина */
+.netbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.netctl{position:absolute;left:12px;top:64px;display:flex;flex-direction:column;gap:6px;z-index:3}
+.netctl .btn{width:36px;height:36px;border-radius:10px;padding:0;font-size:18px}
+canvas#net{cursor:grab}
+canvas#net:active{cursor:grabbing}
+
+/* пояснения к разделам */
+.explain{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px 40px;margin-top:32px;padding-top:24px;border-top:1px solid var(--line)}
+.explain h3{font-size:16px;margin:0 0 8px}
+.explain p{margin:0;font-size:15px;line-height:1.65;color:var(--ink2)}
+.explain b{color:var(--ink);font-weight:600}
+.more{margin-top:20px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.more summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 0;font-size:15px;font-weight:600}
+.more summary::-webkit-details-marker{display:none}
+.more summary:after{content:"+";margin-left:auto;color:var(--ink3);font-weight:400;font-size:20px;line-height:1}
+.more[open] summary:after{content:"–"}
+.morebody{padding:0 0 18px;font-size:15px;line-height:1.65;color:var(--ink2);max-width:820px}
+.morebody p{margin:0 0 10px}
+.morebody ul{margin:0 0 10px;padding-left:20px}
+.morebody li{margin:4px 0}
+.morebody code{font-size:13.5px;background:var(--panel);padding:1px 6px;border-radius:6px}
+
 /* мобильная версия */
 @media (max-width:900px){
   .portrait,.mocard,.storybody{grid-template-columns:1fr;gap:28px}
-  .intro,.trust{grid-template-columns:1fr;gap:20px}
+  .intro,.trust,.explain{grid-template-columns:1fr;gap:20px}
   .stories{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:640px){
@@ -227,7 +289,7 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
   .facts dd{font-size:22px}
   .story{font-size:14.5px;min-height:64px;padding:12px 14px}
   .story[aria-pressed="true"]{padding:11px 13px}
-  canvas#net{height:360px}
+  canvas#net{height:440px}
   .steps p,.formula{margin-left:0}
   .bars .row{grid-template-columns:minmax(0,110px) minmax(0,1fr) 40px}
   /* таблицы превращаются в карточки — без горизонтальной прокрутки */
@@ -239,6 +301,12 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
   table.t td:first-child{font-weight:600;padding-bottom:6px}
   table.t td:not(:first-child):before{content:attr(data-label);color:var(--ink3);text-align:left}
   .actions .btn{flex:1 1 100%}
+  .seg.one{display:flex;width:100%}
+  .seg.one button{flex:1}
+  .game{padding:14px;border-radius:20px}
+  .gamegrid{grid-template-columns:1fr;gap:16px}
+  .opt{font-size:13.5px;min-height:48px;padding:6px 10px}
+  .netctl{top:112px}
   .dna{table-layout:fixed;border-spacing:2px;font-size:11.5px}
   .dna tr > th:first-child{width:34%;padding:0 2px;overflow-wrap:anywhere;line-height:1.2}
   .dna td{min-width:0;font-size:9.5px;height:24px}
@@ -251,7 +319,7 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
   <header class="top">
     <div class="brand">Типы локальных экономик</div>
     <nav aria-label="Разделы">
-      <a href="#map-s">Карта</a><a href="#stories-s">Истории</a><a href="#net-s">Сеть</a><a href="#method-s">Методы</a><a href="#data-s">Данные</a>
+      <a href="#map-s">Карта</a><a href="#game-s">Игра</a><a href="#stories-s">Истории</a><a href="#net-s">Сеть</a><a href="#method-s">Методы</a><a href="#data-s">Данные</a>
     </nav>
     <button class="btn icon" id="themeBtn" aria-label="Переключить тему">
       <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"></circle><path d="M10 3a7 7 0 0 0 0 14z" fill="currentColor"></path></svg>
@@ -261,6 +329,7 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
   <section id="map-s" style="padding-top:40px">
     <h1>Восемь экономик России</h1>
     <p class="lead" id="lead"></p>
+<div class="explain"><div><h3>Что показано</h3><p>Каждый из 1815 муниципалитетов окрашен в свой <b>тип локальной экономики</b> в выбранном месяце. Типы найдены по 25 признакам: траты жителей по данным СберИндекса, отраслевая занятость и зарплаты по данным Росстата, доступность рынков и население.</p></div><div><h3>Как читать</h3><p>Кнопка типа приглушает остальные и открывает его портрет под картой. Переключатель сверху меняет слой: <b>траты</b>, <b>доля маркетплейсов</b> или <b>сколько раз МО сменил тип</b>. Кнопка ▶ проигрывает 24 месяца; при смене типа фишка рушится и строится новая. Клик по территории открывает её карточку.</p></div><div><h3>Что мы видим</h3><p>Типы складываются в связные районы, хотя координат в модели нет: ресурсный пояс Севера, Якутия и Колыма, сельский юг Сибири, мозаика индустриальных городов и аграрной глубинки в центре и Поволжье. Значит, найденные группы — реальные экономико-географические образования.</p></div></div>
 
     <div class="mapcard">
       <div class="maphead">
@@ -271,6 +340,7 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
           <button data-l="mp" aria-pressed="false">Маркетплейсы</button>
           <button data-l="sw" aria-pressed="false">Смены типа</button>
         </div>
+        <div class="seg one"><button id="iconsBtn" aria-pressed="true">Значки типов</button></div>
       </div>
       <div id="map"><div class="tip" id="tip"></div></div>
       <div class="legend" id="legend"></div>
@@ -291,22 +361,56 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
     </div>
 
     <div id="detail" aria-live="polite"></div>
+    <details class="more"><summary>Как устроены слои карты</summary><div class="morebody"><ul>
+      <li><b>Типы</b> — тип каждого МО в выбранном месяце по итоговой модели (эволюционная спектральная кластеризация, раздел «Как устроена модель»).</li>
+      <li><b>Траты</b> — безналичные траты жителя в месяц по данным СберИндекса, декабрь 2024; цвета — пять равных по числу МО групп (квинтили).</li>
+      <li><b>Маркетплейсы</b> — доля маркетплейсов в тратах жителя, среднее за 2023–2024, тоже квинтили.</li>
+      <li><b>Смены типа</b> — сколько раз за 24 месяца тип МО отличался от предыдущего месяца.</li>
+      <li><b>Серым</b> показаны внутригородские территории Москвы и Петербурга (их разбираем отдельно, в отчёте) и регионы, по которым у СберИндекса нет данных.</li>
+    </ul><p>Нажмите на класс в легенде слоя, чтобы оставить на карте только его муниципалитеты.</p></div></details>
+  </section>
+
+  <section id="game-s">
+    <h2>Угадайте экономику</h2>
+    <p class="sub">Перед вами профиль настоящего муниципалитета без названия. Определите его тип: чем меньше подсказок понадобилось, тем больше очков. Десять раундов.</p>
+<div class="explain"><div><h3>Зачем эта игра</h3><p>Это проверка типологии «на человеке». Если тип можно угадать по структуре трат и занятости, значит, типы действительно различаются экономикой, а не только номером кластера.</p></div><div><h3>Как играть</h3><p>Сначала видна только структура трат. Если сложно, откройте занятость, затем регион. Верный ответ с одной подсказкой — <b>3 очка</b>, с двумя — 2, с тремя — 1. После ответа можно посмотреть муниципалитет на карте.</p></div><div><h3>Подсказка</h3><p>Смотрите на долю продуктов и маркетплейсов, на общепит и на сектор занятости, который выделяется: добыча, обработка, бюджетный сектор или сельское хозяйство. Именно они сильнее всего разделяют типы.</p></div></div>
+    <div class="game">
+      <div class="gamebar"><span>Раунд <b id="gRound">1</b> из 10</span><span>Очки <b id="gScore">0</b></span><span>Серия <b id="gStreak">0</b></span><span>Рекорд <b id="gBest">0</b></span></div>
+      <div class="gamegrid">
+        <div id="gClues"></div>
+        <div><div class="opts" id="gOpts" role="group" aria-label="Варианты ответа"></div><div id="gResult" aria-live="polite"></div></div>
+      </div>
+    </div>
   </section>
 
   <section id="stories-s">
     <h2>Что изменилось за два года</h2>
     <p class="sub">Истории, которые видны только в месячных данных. Выберите любую.</p>
+<div class="explain"><div><h3>Что показано</h3><p>Как меняются типы за 24 месяца: сколько муниципалитетов в каждом, кто куда переходит и как меняется экономика внутри типа. Каждая история — отдельный вывод из данных.</p></div><div><h3>Как читать</h3><p>Наведите на столбец, строку или поток, чтобы увидеть цифры. Нажмите, чтобы открыть этот тип и месяц на карте и посмотреть, какие именно территории сменили тип.</p></div><div><h3>Что важно</h3><p>71% муниципалитетов за два года ни разу не сменили тип, а 91% переходов идут между соседними типами. Поэтому каждая история — это сдвиг на границах типов, а не случайный шум.</p></div></div>
     <div class="stories" id="storyTabs" role="group" aria-label="Истории"></div>
     <div class="storybody">
       <div><p class="head" id="sHead"></p><p class="body" id="sBody"></p></div>
       <div class="chart"><div class="cap" id="sCap"></div><div id="sChart"></div></div>
     </div>
+    <details class="more"><summary>Как это посчитано</summary><div class="morebody"><div id="sMethod"></div></div></details>
   </section>
 
   <section id="net-s">
     <h2>Сеть экономической близости</h2>
-    <p class="sub">Каждая точка — муниципалитет, линии связывают его с 15 самыми похожими по атрибутам (июнь 2024). Типы образуют плотные области, а мосты между ними — территории переходного типа. Нажмите на точку, чтобы открыть карточку.</p>
-    <div class="netbox"><canvas id="net"></canvas><div class="tip" id="ntip"></div></div>
+    <p class="sub">Каждый муниципалитет связан нитями с 15 самыми похожими по экономике (июнь 2024). Наведите на узел, чтобы увидеть его нити; нажмите, чтобы открыть карточку.</p>
+<div class="explain"><div><h3>Что показано</h3><p>Сеть, на которой ищутся типы. Нить появляется, если два МО входят в число <b>15 ближайших</b> друг для друга по 25 признакам. Чем ближе признаки, тем прочнее связь. Сеть перестраивается каждый месяц; здесь — июнь 2024.</p></div><div><h3>Как читать</h3><p>В паутине сектор — это тип. У края сектора — ядро типа, ближе к центру — переходные территории. Колесо мыши или щипок приближают: становится видно больше городов, а узлы превращаются в фишки. Режим «Карта сходства» раскладывает те же узлы по UMAP.</p></div><div><h3>Что мы видим</h3><p><span id="xNet">Большинство нитей соединяют муниципалитеты одного типа</span>. Переходные территории тянут нити в соседние сектора. Именно по ним проходят смены типа на карте.</p></div></div>
+    <div class="netbox">
+      <div class="netbar">
+        <div class="seg" id="netMode" role="group" aria-label="Раскладка сети"><button data-m="web" aria-pressed="true">Паутина</button><button data-m="umap" aria-pressed="false">Карта сходства</button></div>
+        <span class="muted" id="netCount" style="font-size:13px"></span>
+      </div>
+      <div class="netctl"><button class="btn" id="netIn" aria-label="Приблизить">+</button><button class="btn" id="netOut" aria-label="Отдалить">−</button><button class="btn" id="netReset" aria-label="Показать всю сеть">⤢</button></div>
+      <canvas id="net"></canvas><div class="tip" id="ntip"></div>
+    </div>
+    <p class="hint" id="netNote"></p>
+    <p class="hint">Колесо мыши или щипок двумя пальцами — приблизить, перетаскивание — сдвинуть. Чем ближе, тем больше городов и подписей.</p>
+    <details class="more"><summary>Почему ребро строится именно так</summary><div class="morebody"><p>Вес ребра — гауссово ядро с локальным масштабом: <code>w = exp(−‖xᵢ − xⱼ‖² / (σᵢσⱼ))</code>, где σᵢ — расстояние до 7-го соседа. Локальный масштаб не даёт оторваться уникальным территориям вроде Норильска или Магадана.</p>
+      <p>Мы сравнили 7 правил построения рёбер: атрибутное сходство, косинус структуры трат, корреляцию рядов, лаговую корреляцию, DTW, дорожную близость и гибрид. Атрибутное сходство лучше всех по силуэту, CH и S_Dbw. Дорожная близость даёт куски карты, а не типы экономик, а корреляции рядов — шумный сигнал «кто движется вместе». Сравнение — во вкладке «Правила рёбер» ниже.</p></div></details>
   </section>
 
   <section id="method-s">
@@ -316,6 +420,7 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
 
     <div class="tabs">
       <h3>Сравнения и проверки</h3>
+<div class="explain"><div><h3>Индексы на признаках</h3><p><b>SW, CH, S_Dbw</b> смотрят на облако точек в пространстве 25 признаков: насколько МО одного типа похожи друг на друга и отличаются от других. Наведите на заголовок столбца, чтобы прочитать определение.</p></div><div><h3>Индексы на сети</h3><p><b>AVI, AVU, MQ</b> смотрят на граф: какая доля связей остаётся внутри типа и насколько сильно типы связаны между собой. Высокие значения при плохих индексах на признаках означают, что сеть просто повторяет карту.</p></div><div><h3>Время и устойчивость</h3><p><b>Стабильность</b> — совпадение разбиений соседних месяцев. <b>Устойчивость</b> — совпадение при повторной кластеризации на случайных 80% МО. Итоговая модель лучшая по среднему рангу шести индексов и по стабильности.</p></div></div>
       <div class="seg" id="mtabs" role="group" aria-label="Таблица" style="margin-top:14px">
         <button data-t="methods" aria-pressed="true">Методы</button>
         <button data-t="edges" aria-pressed="false">Правила рёбер</button>
@@ -336,13 +441,15 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
   <section id="data-s">
     <h2>Данные и код</h2>
     <p class="sub">Все результаты открыты: типы каждого муниципалитета по месяцам, код пайплайна и методологический отчёт.</p>
+<div class="explain"><div><h3>Что в CSV</h3><p>Одна строка — один муниципалитет: <b>territory_id</b> из справочника СберИндекса, название, регион и номер типа в каждом из 24 месяцев. Расшифровка номеров — в первых строках файла.</p></div><div><h3>Как воспроизвести</h3><p>Код в репозитории запускается одной цепочкой команд: загрузка данных, пайплайн, рисунки, лендинг. Все гиперпараметры — в <code>configs/default.yaml</code>, случайность зафиксирована, повторный запуск даёт те же типы.</p></div><div><h3>Источники и лицензия</h3><p>Траты, доступность рынков, дорожные расстояния и границы МО — открытые данные СберИндекса (CC BY-SA 4.0). Занятость, зарплаты и население — база показателей муниципальных образований Росстата. Результаты открыты под той же лицензией.</p></div></div>
     <div class="actions" style="margin-top:28px">
       <button class="btn primary" id="csvBtn">
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M3 13h10"></path></svg>
         Скачать типы по месяцам, CSV
       </button>
-      <a class="btn" href="../docs/report.md">Методологический отчёт</a>
-      <a class="btn" href="../">Код и инструкция</a>
+      <a class="btn" href="https://github.com/proknulo/sberindex/blob/main/docs/report.md">Методологический отчёт</a>
+      <a class="btn" href="https://github.com/proknulo/sberindex/raw/main/docs/presentation.pptx">Презентация</a>
+      <a class="btn" href="https://github.com/proknulo/sberindex">Код и инструкция</a>
     </div>
     <footer id="foot"></footer>
   </section>
@@ -350,7 +457,10 @@ table.t th .ar{display:inline-block;width:10px;color:var(--ink)}
 
 <script>
 const D = window.DATA;
-const PAL = ["#2E6FDB","#E0782A","#1FA187","#C43C5A","#7B5CC7","#B99A1E","#3AA3C9","#8C5A3C"];
+// смысловая палитра: цвет типа следует пиктограмме его фишки — черепица дома, лёд, нефть, огни города,
+// море, кирпич завода, хвоя, спелый колос; у ресурсных центров — цвет сырой нефти (порядок типов — по убыванию трат, см. configs/cluster_names.yaml)
+const PAL = ["#E07B39","#7CC6EE","#7A5230","#7B4FC9","#14808F","#C2452D","#2E8B57","#E0B12E"];
+const onColor = hex => { const n = parseInt(hex.slice(1), 16), l = (0.299 * (n >> 16) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255; return l > 0.62 ? "#1d1f23" : "#fff"; };
 const SEQ = ["#dce8f7","#a9c6ec","#6f9fdb","#3d74c2","#1f4c8f"];
 const K = D.clusters.length, T = D.months.length, CL = D.clusters, NMO = D.mos.length;
 const byId = new Map(D.mos.map(m => [m.id, m]));
@@ -382,6 +492,37 @@ const hideTip = () => gtip.style.display = "none";
 document.addEventListener("mousemove", e => { const t = e.target.closest?.("[data-tip]"); t ? showTip(e, t.dataset.tip) : hideTip(); });
 document.addEventListener("pointerdown", e => { if (e.pointerType !== "mouse") { const t = e.target.closest?.("[data-tip]"); t ? showTip(e, t.dataset.tip) : hideTip(); } });
 addEventListener("scroll", hideTip, {passive: true});
+
+// ---------- значки типов: цветной кружок типа и белая пиктограмма (24×24)
+const GLYPHS = [
+  [/Пригород/, `<path d="M12 3.5 2.5 11.5H5.5V20h5.2v-5h2.6v5h5.2v-8.5h3z"/>`],                                        // дом
+  [/Северо/, `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.6 12 6.2l2.5-1.6M9.5 19.4 12 17.8l2.5 1.6M4.5 10.6l2.6-.1-1.3-2.6M19.5 13.4l-2.6.1 1.3 2.6"/></g>`], // снежинка
+  [/Ресурс/, `<g fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 7.4 21M12 3l4.6 18M9 14.5h6M10.1 10h3.8M5.5 21h13M12 3v3"/></g>`], // вышка
+  [/Крупн/, `<path d="M3.5 21V11h5v10zM9.8 21V3.5h5.4V21zM16.5 21v-7.5h4V21z"/><path fill-opacity=".45" d="M11.2 6h1v1.2h-1zm1.6 0h1v1.2h-1zM11.2 9h1v1.2h-1zm1.6 0h1v1.2h-1zM11.2 12h1v1.2h-1zm1.6 0h1v1.2h-1z"/>`], // небоскрёбы
+  [/Сибирь и/, `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.9"/><path d="M12 7v13.5M8 10.5h8M4.8 13.5a7.2 7.2 0 0 0 14.4 0"/></g>`], // якорь
+  [/Индустри/, `<path d="M2.5 21V11.5l5 3v-3l5 3V8.5h2.2V3.5h2.6v5h1.4V3.5h2.6V21z"/>`],                               // завод
+  [/Сельская/, `<path d="M12 2.5 6.8 9.6h3L5.2 16h5.3v5.5h3V16h5.3l-4.6-6.4h3z"/>`],                                    // ель
+  [/Аграр/, `<path d="M12 9c-2.2-1-3.4-3.1-3.4-5.6 2.2 1 3.4 3.1 3.4 5.6zm0 0c2.2-1 3.4-3.1 3.4-5.6-2.2 1-3.4 3.1-3.4 5.6zm0 5c-2.4-1-3.8-3.2-3.8-5.6 2.4 1 3.8 3.2 3.8 5.6zm0 0c2.4-1 3.8-3.2 3.8-5.6-2.4 1-3.8 3.2-3.8 5.6zm0 5c-2.4-1-3.8-3.2-3.8-5.6 2.4 1 3.8 3.2 3.8 5.6zm0 0c2.4-1 3.8-3.2 3.8-5.6-2.4 1-3.8 3.2-3.8 5.6z"/><path d="M11.2 9h1.6v12h-1.6z"/>`] // колос
+];
+const glyphOf = c => (GLYPHS.find(([re]) => re.test(c.short || c.name)) || [null, `<circle cx="12" cy="12" r="5"/>`])[1];
+// фишка «Монополии»: металлическая фигурка на подставке цвета типа (56×56)
+const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16), t = f > 0 ? 255 : 0, a = Math.abs(f);
+  const c = [n >> 16, n >> 8 & 255, n & 255].map(v => Math.round(v + (t - v) * a)); return "#" + c.map(v => v.toString(16).padStart(2, "0")).join(""); };
+const badgeSVG = (k, size = 56) => {
+  const g = glyphOf(CL[k]), isStroke = g.includes('fill="none"');
+  const metal = isStroke ? g.replace(/stroke="#fff"/g, 'stroke="url(#m)"') : `<g fill="url(#m)" stroke="#3f444b" stroke-width=".55">${g}</g>`;
+  const outline = isStroke ? g.replace(/stroke="#fff"/g, 'stroke="#3f444b"').replace(/stroke-width="([\d.]+)"/g, (m, w) => `stroke-width="${+w + 1}"`) : "";
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 56 56">` +
+    `<defs><linearGradient id="m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".45" stop-color="#c3c7cd"/><stop offset="1" stop-color="#6d727a"/></linearGradient></defs>` +
+    `<ellipse cx="28" cy="49" rx="18" ry="4" fill="#000" opacity=".15"/>` +
+    `<ellipse cx="28" cy="47" rx="17" ry="5.5" fill="${shade(PAL[k], -.35)}" stroke="#1d1f23" stroke-width=".8"/>` +
+    `<ellipse cx="28" cy="45" rx="17" ry="5.5" fill="${PAL[k]}" stroke="#1d1f23" stroke-width=".8"/>` +
+    `<ellipse cx="25" cy="43.6" rx="9" ry="1.6" fill="#fff" opacity=".35"/>` +
+    (outline ? `<g transform="translate(9.5 4) scale(1.55)">${outline}</g>` : "") +
+    `<g transform="translate(9.5 4) scale(1.55)">${metal}</g></svg>`;
+};
+const BADGE = CL.map(c => "data:image/svg+xml;charset=utf-8," + encodeURIComponent(badgeSVG(c.id, 112)));
+const badgeImg = (k, px = 26) => `<img src="${BADGE[k]}" width="${px}" height="${px}" alt="" style="display:block;flex-shrink:0">`;
 
 // значение признака в понятных единицах (для подсказок к профилям)
 function featVal(f, p) {
@@ -419,6 +560,16 @@ const maskFC = {type: "FeatureCollection", features: [{type: "Feature", properti
 const outlineFC = {type: "FeatureCollection", features: [{type: "Feature", properties: {}, geometry: {type: "MultiLineString", coordinates: GEO.russia.outline.map(decRing)}}]};
 const bboxOf = id => { let b = [Infinity, Infinity, -Infinity, -Infinity];
   GEO.mo[id].forEach(p => decRing(p[0]).forEach(([x, y]) => { b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)]; })); return [[b[0], b[1]], [b[2], b[3]]]; };
+
+// ---------- значки типов на карте: крупные МО видны всегда, мелкие появляются при приближении
+let iconsOn = true;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const iconsFC = (t, skip) => ({type: "FeatureCollection", features: D.mos.filter(m => GEO.pt && GEO.pt[m.id] && !(skip && skip.has(m.id)))
+  .map(m => ({type: "Feature", properties: {id: m.id, c: m.L[t], pop: m.pop}, geometry: {type: "Point", coordinates: GEO.pt[m.id]}}))});
+const ICON_ZOOM = [[2, .46], [4, .54], [6, .66], [8, .78], [11, .92]];
+const iconScale = z => { const a = ICON_ZOOM; if (z <= a[0][0]) return a[0][1];
+  for (let i = 1; i < a.length; i++) if (z <= a[i][0]) { const [z0, s0] = a[i - 1], [z1, s1] = a[i]; return s0 + (s1 - s0) * (z - z0) / (z1 - z0); }
+  return a[a.length - 1][1]; };
 
 // слои-показатели: 5 квантильных классов (смены типа — по числу смен)
 function quantClasses(get, fmtv, unit) {
@@ -483,6 +634,19 @@ function addOurLayers() {
   map.addLayer({id: "mask", type: "fill", source: "mask", paint: {"fill-color": bgc, "fill-opacity": 1, "fill-antialias": false}}, "mo-sel");
   map.addLayer({id: "outline", type: "line", source: "outline", layout: {"line-join": "round"},
     paint: {"line-color": dark ? "#8e96a3" : "#616975", "line-width": ["interpolate", ["linear"], ["zoom"], 2, 0.8, 8, 1.6]}}, "mo-sel");
+  // значки типов: картинки грузятся асинхронно, слой добавляется, когда они готовы
+  Promise.all(CL.map(c => new Promise(res => { const img = new Image(112, 112);
+    img.onload = () => { if (!map.hasImage("badge-" + c.id)) map.addImage("badge-" + c.id, img, {pixelRatio: 2}); res(); }; img.src = BADGE[c.id]; })))
+    .then(() => {
+      if (map.getSource("icons")) return;
+      map.addSource("icons", {type: "geojson", data: iconsFC(month)});
+      map.addLayer({id: "mo-icons", type: "symbol", source: "icons", layout: {
+        "icon-image": ["concat", "badge-", ["to-string", ["get", "c"]]],
+        "icon-size": ["interpolate", ["linear"], ["zoom"], ...ICON_ZOOM.flat()],
+        "icon-anchor": "bottom", "icon-allow-overlap": false, "icon-padding": 2, "symbol-sort-key": ["-", 0, ["get", "pop"]]},
+        paint: {"icon-opacity": iconOpacity()}}, "mo-sel");
+      syncIcons();
+    });
   // свои подписи субъектов на мелком масштабе; крупнее их сменяют подписи подложки
   map.addLayer({id: "reg-label", type: "symbol", source: "reglab", maxzoom: 5,
     layout: {"text-field": ["get", "n"], "text-font": ["Noto Sans Bold"], "text-size": 10.5, "text-transform": "uppercase",
@@ -506,7 +670,7 @@ function restyle() {
 function renderLegend() {
   const L = LAYERS[layer];
   if (layer === "type") {
-    $("legend").innerHTML = `<span>${typeSel >= 0 ? "Остальные типы приглушены." : "Цвет — тип экономики в выбранном месяце."} Серым — территории вне модели.</span>`;
+    $("legend").innerHTML = `<span>${typeSel >= 0 ? "Остальные типы приглушены." : "Цвет — тип экономики в выбранном месяце."} Серым — территории вне модели.${iconsOn ? " Значки стоят на крупнейших муниципалитетах, при приближении их больше. Нажмите ▶: при смене типа старый значок рушится и строится новый." : ""}</span>`;
   } else {
     const counts = d3.range(5).map(i => D.mos.filter(m => L.cls(L.get(m)) === i).length);
     $("legend").innerHTML = `<span style="color:var(--ink2)">${L.note}:</span>` + L.labels.map((l, i) =>
@@ -519,7 +683,7 @@ function setLayer(l) {
   layer = l; legendSel = -1;
   document.querySelectorAll("#layers button").forEach(x => x.setAttribute("aria-pressed", x.dataset.l === l));
   if (map.getLayer("mo-fill")) map.setPaintProperty("mo-fill", "fill-color", fillColor());
-  restyle(); renderLegend();
+  restyle(); renderLegend(); syncIcons();
 }
 document.querySelectorAll("#layers button").forEach(b => b.onclick = () => setLayer(b.dataset.l));
 // переход к карте из любой визуализации: тип, месяц, муниципалитет
@@ -548,7 +712,45 @@ const zoomToMo = id => { if (GEO.mo[id]) map.fitBounds(bboxOf(id), {maxZoom: 10,
 // время
 const slider = $("slider");
 slider.max = T - 1; slider.value = month;
-function setMonth(t) { month = t; slider.value = t; $("mlabel").textContent = mlab(D.months[t]); restyle(); }
+function setMonth(t) { const prev = month; month = t; slider.value = t; $("mlabel").textContent = mlab(D.months[t]); restyle(); updateIcons(prev); }
+
+// значки: прозрачность при выбранном типе, видимость только на слое «Типы»
+function iconOpacity() { return typeSel >= 0 ? ["case", ["==", ["get", "c"], typeSel], 1, 0.18] : 1; }
+function syncIcons() {
+  if (!map.getLayer("mo-icons")) return;
+  map.setLayoutProperty("mo-icons", "visibility", iconsOn && layer === "type" ? "visible" : "none");
+  map.setPaintProperty("mo-icons", "icon-opacity", iconOpacity());
+}
+$("iconsBtn").onclick = function () { iconsOn = !iconsOn; this.setAttribute("aria-pressed", iconsOn); syncIcons(); renderLegend(); };
+// смена месяца на один шаг: у видимых значков, чей тип поменялся, старый рушится и строится новый
+let fxToken = 0;
+function updateIcons(prev) {
+  const src = map.getSource("icons"); if (!src) return;
+  const tok = ++fxToken;
+  const canAnim = iconsOn && layer === "type" && !REDUCED && prev != null && Math.abs(month - prev) === 1 && map.getLayer("mo-icons");
+  if (!canAnim) { src.setData(iconsFC(month)); return; }
+  const seen = new Set();
+  const changed = map.queryRenderedFeatures({layers: ["mo-icons"]}).map(f => f.properties.id)
+    .filter(id => { if (seen.has(id)) return false; seen.add(id); const m = byId.get(id); return m && m.L[prev] !== m.L[month]; })
+    .sort((a, b) => byId.get(b).pop - byId.get(a).pop).slice(0, 30);
+  if (!changed.length) { src.setData(iconsFC(month)); return; }
+  src.setData(iconsFC(month, new Set(changed)));
+  const size = 56 * iconScale(map.getZoom()), box = $("map");
+  const els = changed.map(id => spawnFx(box, map.project(GEO.pt[id]), size, byId.get(id).L[prev], byId.get(id).L[month]));
+  setTimeout(() => { els.forEach(e => e.remove()); if (tok === fxToken) src.setData(iconsFC(month)); }, 1400);
+}
+function spawnFx(box, p, size, from, to) {
+  const el = document.createElement("div"); el.className = "fx";
+  el.style.cssText = `left:${p.x}px;top:${p.y - size / 2}px;width:${size}px;height:${size}px`;
+  const SH = [["polygon(0 0,58% 0,46% 48%,0 40%)", "-14px", "10px", "-35deg"], ["polygon(58% 0,100% 0,100% 52%,46% 48%)", "13px", "8px", "40deg"],
+              ["polygon(0 40%,46% 48%,40% 100%,0 100%)", "-10px", "22px", "-20deg"], ["polygon(46% 48%,100% 52%,100% 100%,40% 100%)", "11px", "24px", "25deg"]];
+  el.innerHTML = `<div class="old">${SH.map(([cp, dx, dy, r]) => `<div class="shard" style="background-image:url('${BADGE[from]}');clip-path:${cp};--dx:${dx};--dy:${dy};--rot:${r}"></div>`).join("")}</div>` +
+    [[-12, 6], [12, 4], [0, 10]].map(([dx, dy]) => `<div class="dust" style="--dx:${dx}px;--dy:${dy}px"></div>`).join("") +
+    `<div class="scaf"></div><div class="new" style="background-image:url('${BADGE[to]}')"></div><div class="ring" style="border-color:${PAL[to]}"></div>`;
+  box.appendChild(el); return el;
+}
+// если карту сдвинули во время анимации — убрать её и сразу показать итог
+map.on("movestart", () => { const fx = document.querySelectorAll("#map .fx"); if (fx.length) { fx.forEach(e => e.remove()); map.getSource("icons")?.setData(iconsFC(month)); } });
 slider.oninput = () => setMonth(+slider.value);
 let timer = null;
 const PLAY = '<path d="M2 2l10 6-10 6z" fill="currentColor"></path>', PAUSE = '<path d="M3 2h3v12H3zM8 2h3v12H8z" fill="currentColor"></path>';
@@ -557,18 +759,18 @@ $("play").onclick = () => {
   if (timer) return stopPlay();
   $("playIcon").innerHTML = PAUSE; $("play").setAttribute("aria-label", "Пауза");
   if (month === T - 1) setMonth(0);
-  timer = setInterval(() => month >= T - 1 ? stopPlay() : setMonth(month + 1), 650);
+  timer = setInterval(() => month >= T - 1 ? stopPlay() : setMonth(month + 1), iconsOn && layer === "type" && !REDUCED ? 1450 : 650);
 };
 
 // кнопки типов
 function renderChips() {
   $("chips").innerHTML = `<button class="chip" data-i="-1" aria-pressed="${typeSel < 0}">Все типы</button>` +
-    CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${typeSel === c.id}"><i style="background:${PAL[c.id]}"></i>${c.short || c.name}</button>`).join("");
+    CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${typeSel === c.id}">${badgeImg(c.id, 28)}${c.short || c.name}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => selectType(+b.dataset.i));
 }
 function selectType(i) {
   typeSel = i; selected = null; highlight(null);
-  renderChips(); renderLegend(); restyle();
+  renderChips(); renderLegend(); restyle(); syncIcons();
   i < 0 ? renderIntro() : renderPortrait(i);
 }
 
@@ -663,6 +865,78 @@ function selectMo(id, zoomTo) {
 
 renderChips(); renderLegend(); renderIntro(); setMonth(month);
 
+// ================================================================ игра «Угадайте экономику»
+// Раунд — настоящий МО с устойчивым типом (≥ 90% месяцев в одном типе). Подсказки открываются
+// по одной: структура трат → занятость → регион и население. Очки: 3 / 2 / 1 за верный ответ.
+(function () {
+  const ROUNDS = 10;
+  const modal = m => { const c = d3.rollup(m.L, v => v.length, x => x); return [...c].sort((a, b) => b[1] - a[1])[0][0]; };
+  const pool = d3.group(D.mos.filter(m => (m.conf ?? 0) >= 0.9 && m.pop > 3000), modal);
+  const rnd = n => Math.floor(Math.random() * n);
+  const shortEmp = Object.fromEntries(Object.entries(EMP_RU).map(([k, v]) => [k, v.replace(/\s*\(.*\)$/, "")]));
+  const RANKS = [[26, "Главный экономгеограф"], [19, "Экономгеограф"], [11, "Краевед"], [0, "Турист"]];
+  let best = 0; try { best = +localStorage.getItem("sbx-quiz-best") || 0; } catch (e) {}
+  let st;
+
+  function newGame() {
+    const order = d3.shuffle(CL.map(c => c.id).filter(k => pool.get(k)?.length));
+    st = {round: 0, score: 0, streak: 0, order, used: new Set()};
+    nextRound();
+  }
+  function nextRound() {
+    if (st.round >= ROUNDS) return finish();
+    const k = st.order[st.round % st.order.length];
+    const cand = pool.get(k).filter(m => !st.used.has(m.id));
+    const m = cand[rnd(cand.length)]; st.used.add(m.id);
+    Object.assign(st, {m, answer: k, clues: 1, done: false});
+    st.round++;
+    render();
+  }
+  function clueHtml(i) {
+    const m = st.m;
+    if (i === 0) return `<div class="clue"><h4>Структура трат <span class="pts">подсказка 1</span></h4><p class="muted" style="margin:0 0 8px;font-size:14px">Безналичные траты жителя: <b style="color:var(--ink)">${fmt(m.cons)} ₽</b> в месяц</p>${bars(m.sh, SH_RU, 0.6)}</div>`;
+    if (i === 1) return `<div class="clue"><h4>Занятость <span class="pts">подсказка 2</span></h4>${bars(Object.fromEntries(Object.entries(m.emp).sort((a, b) => b[1] - a[1]).slice(0, 5)), shortEmp, 0.6)}<p class="muted" style="margin:8px 0 0;font-size:14px">Зарплата: ${m.wage != null ? `×${f2(m.wage)} к медиане МО` : "нет данных"}</p></div>`;
+    return `<div class="clue"><h4>Где это <span class="pts">подсказка 3</span></h4><p style="margin:0;font-size:15px">${m.r}<br><span class="muted">${fmt(m.pop)} жителей, ${m.t}</span></p></div>`;
+  }
+  function render() {
+    $("gRound").textContent = st.round; $("gScore").textContent = st.score; $("gStreak").textContent = st.streak; $("gBest").textContent = best;
+    const left = [0, 1, 2].map(i => i < st.clues || st.done ? clueHtml(i)
+      : (i === st.clues ? `<div class="clue locked"><span>Ещё ${3 - st.clues} ${3 - st.clues === 1 ? "подсказка" : "подсказки"}. Каждая отнимает одно очко.</span><button class="btn" id="gMore">Открыть</button></div>` : "")).join("");
+    $("gClues").innerHTML = left;
+    $("gOpts").innerHTML = CL.map(c => `<button class="opt" data-k="${c.id}" ${st.done ? "disabled" : ""}>${badgeImg(c.id, 36)}<span>${c.short || c.name}</span></button>`).join("");
+    if (st.done) $("gOpts").querySelectorAll(".opt").forEach(b => { const k = +b.dataset.k;
+      b.classList.add(k === st.answer ? "right" : k === st.pick ? "wrong" : "dim"); });
+    $("gMore")?.addEventListener("click", () => { st.clues++; render(); });
+    $("gOpts").querySelectorAll(".opt:not(:disabled)").forEach(b => b.onclick = () => answer(+b.dataset.k));
+    $("gResult").innerHTML = st.done ? verdict() : `<p class="hint">Верный ответ сейчас стоит ${4 - st.clues} ${4 - st.clues === 1 ? "очко" : "очка"}.</p>`;
+    $("gNext")?.addEventListener("click", nextRound);
+    $("gMap")?.addEventListener("click", () => goMap({mo: st.m.id}));
+  }
+  function answer(k) {
+    st.pick = k; st.done = true;
+    const ok = k === st.answer, pts = ok ? 4 - st.clues : 0;
+    st.score += pts; st.streak = ok ? st.streak + 1 : 0; st.last = {ok, pts};
+    render();
+  }
+  function verdict() {
+    const m = st.m, c = CL[st.answer], ok = st.last.ok;
+    const sig = (D.meta.signature_features || []).filter(f => c.z[f] != null).sort((a, b) => Math.abs(c.z[b]) - Math.abs(c.z[a]))[0];
+    return `<div class="verdict"><b>${ok ? `Верно! +${st.last.pts}` : "Не угадали."}</b> Это <b>${m.n}</b> (${m.r}) — тип «${c.name}».
+      Главная примета типа: ${(FEAT_RU[sig] || sig).toLowerCase()} ${c.z[sig] > 0 ? "выше" : "ниже"} среднего.${st.streak >= 3 ? ` Серия из ${st.streak} верных подряд!` : ""}</div>
+      <div class="gameactions"><button class="btn primary" id="gNext">${st.round >= ROUNDS ? "Итоги" : "Следующий муниципалитет"}</button><button class="btn" id="gMap">Показать на карте</button></div>`;
+  }
+  function finish() {
+    const rank = RANKS.find(([s]) => st.score >= s)[1];
+    if (st.score > best) { best = st.score; try { localStorage.setItem("sbx-quiz-best", best); } catch (e) {} }
+    $("gBest").textContent = best;
+    $("gClues").innerHTML = `<div class="clue"><h4>Игра окончена</h4><p style="margin:0;font-size:28px;font-weight:600">${st.score} из ${ROUNDS * 3}</p><p class="muted" style="margin:6px 0 0;font-size:15px">Ваше звание: <b style="color:var(--ink)">${rank}</b></p></div>`;
+    $("gOpts").innerHTML = "";
+    $("gResult").innerHTML = `<div class="gameactions"><button class="btn primary" id="gAgain">Сыграть ещё раз</button></div>`;
+    $("gAgain").onclick = newGame;
+  }
+  newGame();
+})();
+
 // ================================================================ истории
 const ind = clusterOf(/Индустри/), sib = clusterOf(/Сельская/);
 const share = k => D.months.map((_, t) => D.mos.filter(m => m.L[t] === k).length / NMO);
@@ -719,15 +993,19 @@ const indS = share(ind.id), sibS = share(sib.id);
 const STORIES = [
   {tab: "Индустриальные города уступают место", head: `Индустриальный тип сжался с ${pct(indS[0])} до ${pct(indS[T - 1])} территорий`,
    body: "Больше сотни городов Урала и Поволжья перешли в аграрную глубинку. У них доля обрабатывающих производств в занятости упала с 12% до 7%, а доля маркетплейсов в тратах выросла.",
+   method: "Доля — число МО, отнесённых к индустриальному типу в месяце, делённое на 1815. Тип каждого месяца даёт эволюционная спектральная кластеризация с памятью: месяц сравнивается со сглаженной историей, поэтому разовый всплеск трат тип не меняет. Сдвиг совпадает со сменой года в данных Росстата (2023 → 2024): у перешедших МО доля обработки в занятости упала с 11,7% до 7,3%. На двух годах нельзя отличить реальное сокращение промышленной занятости от изменений учёта, поэтому мы называем это наблюдением, а не причиной.",
    cap: "Доля муниципалитетов индустриального типа по месяцам", hint: "Наведите на столбец, чтобы увидеть месяц; нажмите, чтобы открыть его на карте.", chart: () => barChart(indS, PAL[ind.id], ind.id)},
   {tab: "Сельская Сибирь дышит по сезонам", head: `Каждое лето сельская Сибирь расширяется — до ${pct(d3.max(sibS))} территорий`,
    body: "Соседние районы с летним пиком трат — дачи, Алтай, Байкал — летом переходят в этот тип и к зиме возвращаются. Эффект повторился в оба года.",
+   method: "Доля МО типа «Сельская Сибирь» по месяцам. Признак «летний пик» — насколько траты в июне–августе выше среднего за год; у районов с дачами и туризмом он высокий, и летом их профиль сближается с этим типом. Эффект повторился в 2023 и 2024 годах. Для отдельного МО такой переход сравним с граничным шумом, поэтому правильнее говорить о сезонном смещении границы типа, а не о смене экономики района.",
    cap: "Доля муниципалитетов типа «Сельская Сибирь» по месяцам", hint: "Нажмите на летний столбец, чтобы увидеть на карте, какие районы присоединяются.", chart: () => barChart(sibS, PAL[sib.id], sib.id)},
   {tab: "Маркетплейсы приходят в глубинку", head: "Доля маркетплейсов растёт во всех восьми типах",
    body: "Быстрее всего — там, где мало офлайн-магазинов. На удалённом Северо-Востоке она остаётся самой низкой: доставка всё ещё ограничивает спрос.",
+   method: "Медиана доли маркетплейсов в тратах по МО каждого типа при фиксированном составе типа (каждый МО отнесён к своему основному типу за два года), чтобы видеть изменение экономики, а не состава. Сравниваются январь 2023 и декабрь 2024. Декабрь — пик онлайн-покупок, поэтому по среднегодовым значениям рост скромнее: +34–45% в большинстве типов и +84% на Северо-Востоке (отчёт, §7.3).",
    cap: `Доля маркетплейсов в тратах, ${mlab(D.months[0])} → ${mlab(D.months[T - 1])}`, hint: "Наведите на строку, чтобы сравнить; нажмите, чтобы показать тип на карте.", chart: dumbbell},
   {tab: "Все переходы между типами", head: `${pct(D.temporal.never_switch_share)} муниципалитетов ни разу не сменили тип`,
    body: `Потоки между типами по кварталам: толщина равна числу муниципалитетов. ${pct(D.adj)} переходов идут между двумя ближайшими типами — это территории на границе, а не случайные скачки.`,
+   method: "Узел — тип в начале квартала, поток — число МО, перешедших из типа в тип за квартал. Петли внутри типа — те, кто тип сохранил. «Ближайшие типы» — два типа с ближайшими центрами в пространстве признаков; в них идут 91% переходов. События слияния и разделения типов отслеживаются по доле пересечения состава соседних месяцев (порог 0,3).",
    cap: "Потоки муниципалитетов между типами по кварталам", hint: "Наведите на узел, чтобы подсветить его потоки; нажмите — откроется этот тип и квартал на карте.", chart: sankey}
 ];
 let story = 0;
@@ -737,6 +1015,7 @@ function renderStory() {
   const s = STORIES[story];
   $("sHead").textContent = s.head; $("sBody").textContent = s.body; $("sCap").textContent = s.cap;
   $("sChart").innerHTML = s.chart() + `<p class="hint">${s.hint}</p>`;
+  $("sMethod").innerHTML = `<p>${s.method}</p>`;
   const box = $("sChart");
   box.querySelectorAll("rect.b").forEach(el => el.onclick = () => goMap({type: +el.dataset.type, t: +el.dataset.t}));
   box.querySelectorAll("g.row").forEach(el => el.onclick = () => goMap({type: +el.dataset.type}));
@@ -752,65 +1031,210 @@ function renderStory() {
   }
 }
 renderStory();
-// ================================================================ сеть
-// фон (все рёбра и точки) рисуется один раз во внутренний холст; при наведении поверх
-// подсвечиваются соседи точки, кнопки типов под сетью оставляют яркими только выбранный тип
+// ================================================================ сеть-паутина
+// Раскладка «паутина»: сектор = тип; у края сектора — ядро типа (почти все соседи по сходству того же
+// типа), ближе к центру — переходные МО, связанные с другими типами; внутри сектора похожие МО лежат
+// рядом (порядок по главной оси UMAP). Нити — рёбра kNN-графа
+// июня 2024: провисают к центру, как в паутине. Альтернатива — исходная раскладка UMAP.
+// Уровень детализации: при отдалении видны только крупнейшие МО, при приближении — все.
 (function () {
   if (!D.emb) return;
   const cv = $("net"), ctx = cv.getContext("2d"), ntip = $("ntip");
-  const E = D.emb, pts = E.xy, N = pts.length;
+  const E = D.emb, N = E.xy.length, MO = E.ids.map(id => byId.get(id));
   const nbr = Array.from({length: N}, () => []);
   E.edges.forEach(([a, b]) => { nbr[a].push(b); nbr[b].push(a); });
-  const base = document.createElement("canvas"), bctx = base.getContext("2d");
-  let sx, sy, q, W, H, dpr, netType = -1, hover = null;
-  const X = i => sx(pts[i][0]), Y = i => sy(pts[i][1]);
-  function drawBase() {
+  const sameShare = E.edges.filter(([a, b]) => E.lab[a] === E.lab[b]).length / E.edges.length;
+  $("xNet").textContent = `${pct(sameShare)} нитей соединяют муниципалитеты одного типа`;
+  const byPop = d3.range(N).sort((a, b) => MO[b].pop - MO[a].pop);
+  const popRank = new Int32Array(N); byPop.forEach((i, r) => popRank[i] = r);
+  const maxPop = d3.max(MO, m => m.pop);
+  // порядок появления при приближении: внутри типа — по населению, между типами — пропорционально
+  // √(размер типа), чтобы даже при сильном отдалении в каждом секторе были узлы и нити
+  const typeSize = d3.rollup(d3.range(N), v => v.length, i => E.lab[i]);
+  const inType = new Map(); [...byPop].forEach(i => { const c = E.lab[i]; inType.set(i, (inType.get(c + "#") ?? 0)); inType.set(c + "#", (inType.get(c + "#") ?? 0) + 1); });
+  const lodOrder = d3.range(N).sort((a, b) => inType.get(a) / Math.sqrt(typeSize.get(E.lab[a])) - inType.get(b) / Math.sqrt(typeSize.get(E.lab[b])));
+  const shortName = n => n.replace(/^(городской округ|муниципальный округ|муниципальный район)\s+(город-курорт|город-герой|город|город-порт|закрытое административно-территориальное образование)?\s*/, "")
+    .replace(" муниципальный район", " р-н").replace(" муниципальный округ", " м.о.").replace(" городской округ", " г.о.").trim();
+
+  // --- раскладка «паутина»
+  const SEC = 2 * Math.PI / K, ang0 = c => -Math.PI / 2 + c * SEC;
+  // «типичность»: доля соседей своего типа и доля месяцев в основном типе
+  const core = d3.range(N).map(i => nbr[i].length ? nbr[i].filter(j => E.lab[j] === E.lab[i]).length / nbr[i].length : 1);
+  const score = d3.range(N).map(i => core[i] + 0.3 * (MO[i].conf ?? 1) + 1e-6 * popRank[i]);
+  const R0 = 0.16, RINGS = [0.4, 0.7, 1.0];
+  const web = new Array(N);
+  CL.forEach(c => {
+    const idx = d3.range(N).filter(i => E.lab[i] === c.id); if (!idx.length) return;
+    const mx = d3.mean(idx, i => E.xy[i][0]), my = d3.mean(idx, i => E.xy[i][1]);
+    let sxx = 0, syy = 0, sxy = 0;
+    idx.forEach(i => { const dx = E.xy[i][0] - mx, dy = E.xy[i][1] - my; sxx += dx * dx; syy += dy * dy; sxy += dx * dy; });
+    const th = 0.5 * Math.atan2(2 * sxy, sxx - syy), vx = Math.cos(th), vy = Math.sin(th);   // главная ось типа
+    const rr0 = new Map([...idx].sort((a, b) => score[a] - score[b]).map((i, r) => [i, idx.length > 1 ? r / (idx.length - 1) : 1]));
+    idx.sort((a, b) => (E.xy[a][0] * vx + E.xy[a][1] * vy) - (E.xy[b][0] * vx + E.xy[b][1] * vy))
+      .forEach((i, r) => {
+        const u = idx.length > 1 ? r / (idx.length - 1) : .5, h = Math.sin(i * 12.9898) * 43758.5453 % 1;
+        const a = ang0(c.id) + (u - .5) * SEC * .84, rr = Math.min(1, R0 + (1 - R0) * Math.pow(rr0.get(i), 0.8) + h * .01);
+        web[i] = [Math.cos(a) * rr, Math.sin(a) * rr];
+      });
+  });
+  // --- раскладка UMAP, нормированная в тот же квадрат
+  const ex = d3.extent(E.xy, p => p[0]), ey = d3.extent(E.xy, p => p[1]);
+  const us = 2 / Math.max(ex[1] - ex[0], ey[1] - ey[0]);
+  const umap = E.xy.map(p => [(p[0] - (ex[0] + ex[1]) / 2) * us, -(p[1] - (ey[0] + ey[1]) / 2) * us]);
+
+  let mode = "web", pos = web.map(p => [...p]), netType = -1, hover = null, tr = d3.zoomIdentity, W, H, dpr, S;
+  const img = BADGE.map(src => Object.assign(new Image(), {src}));
+  img.forEach(im => im.onload = () => draw());
+  const css = v => getComputedStyle(root).getPropertyValue(v).trim();
+  const P = i => [tr.applyX(W / 2 + pos[i][0] * S), tr.applyY(H / 2 + pos[i][1] * S)];
+  const W2S = (x, y) => [tr.applyX(W / 2 + x * S), tr.applyY(H / 2 + y * S)];
+
+  function resize() {
     dpr = devicePixelRatio || 1; W = cv.clientWidth; H = cv.clientHeight;
-    cv.width = base.width = W * dpr; cv.height = base.height = H * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    sx = d3.scaleLinear().domain(d3.extent(pts, p => p[0])).range([16, W - 16]);
-    sy = d3.scaleLinear().domain(d3.extent(pts, p => p[1])).range([H - 16, 16]);
-    bctx.clearRect(0, 0, W, H);
-    bctx.globalAlpha = netType >= 0 ? .03 : .07; bctx.strokeStyle = getComputedStyle(root).getPropertyValue("--ink2"); bctx.lineWidth = .6;
-    bctx.beginPath(); E.edges.forEach(([a, b]) => { bctx.moveTo(X(a), Y(a)); bctx.lineTo(X(b), Y(b)); }); bctx.stroke();
-    pts.forEach((p, i) => { const on = netType < 0 || E.lab[i] === netType;
-      bctx.globalAlpha = on ? .9 : .12; bctx.fillStyle = PAL[E.lab[i]]; bctx.beginPath(); bctx.arc(X(i), Y(i), on && netType >= 0 ? 2.8 : 2.3, 0, 7); bctx.fill(); });
-    q = d3.quadtree().x(X).y(Y).addAll(d3.range(N));
-    render();
+    cv.width = W * dpr; cv.height = H * dpr; S = Math.min(W, H) / 2 / 1.22;
+    zoom.extent([[0, 0], [W, H]]).translateExtent([[-W * .25, -H * .25], [W * 1.25, H * 1.25]]);
+    draw();
   }
-  function render() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(base, 0, 0);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    if (hover == null) return;
-    const ink = getComputedStyle(root).getPropertyValue("--ink");
-    ctx.globalAlpha = .8; ctx.strokeStyle = ink; ctx.lineWidth = 1;
-    ctx.beginPath(); nbr[hover].forEach(j => { ctx.moveTo(X(hover), Y(hover)); ctx.lineTo(X(j), Y(j)); }); ctx.stroke();
+  let visible = [], quad = null;
+  function draw() {
+    if (!W) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+    const k = tr.k, ink = css("--ink"), ink3 = css("--ink3"), bg = css("--panel");
+    // фон паутины: спицы по границам секторов и провисающие кольца уровней трат
+    if (mode === "web") {
+      ctx.globalAlpha = .55; ctx.strokeStyle = css("--line2"); ctx.lineWidth = 1;
+      for (let c = 0; c < K; c++) { const a = ang0(c) - SEC / 2, [x0, y0] = W2S(0, 0), [x1, y1] = W2S(Math.cos(a) * 1.06, Math.sin(a) * 1.06);
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+      RINGS.forEach(r => {
+        ctx.beginPath();
+        for (let c = 0; c <= K; c++) { const a1 = ang0(c) - SEC / 2, am = a1 - SEC / 2;
+          const [x1, y1] = W2S(Math.cos(a1) * r, Math.sin(a1) * r), [cx, cy] = W2S(Math.cos(am) * r * .9, Math.sin(am) * r * .9);
+          if (c === 0) ctx.moveTo(x1, y1); else ctx.quadraticCurveTo(cx, cy, x1, y1); }
+        ctx.stroke(); });
+      ctx.globalAlpha = .9; ctx.fillStyle = ink3; ctx.font = "11px Onest, sans-serif";
+      const lab = (r, t) => { const a = -Math.PI / 2 + SEC / 2, [lx, ly] = W2S(Math.cos(a) * r * .95, Math.sin(a) * r * .95); ctx.fillText(t, lx + 4, ly - 4); };
+      lab(RINGS[0] * .7, "переходные"); lab(1, "ядро типа");
+      ctx.globalAlpha = 1;
+    }
+    // уровень детализации: сколько МО показывать при текущем приближении
+    const nVis = Math.min(N, Math.round(150 * Math.pow(k, 1.75)));
+    const vis = new Uint8Array(N);
+    for (let r = 0; r < nVis; r++) vis[lodOrder[r]] = 1;
+    if (netType >= 0) for (let i = 0; i < N; i++) if (E.lab[i] === netType) vis[i] = 1;
+    if (hover != null) { vis[hover] = 1; nbr[hover].forEach(j => vis[j] = 1); }
+    const XY = new Array(N);
+    visible = [];
+    for (let i = 0; i < N; i++) if (vis[i]) { const p = XY[i] = P(i); if (p[0] > -40 && p[0] < W + 40 && p[1] > -40 && p[1] < H + 40) visible.push(i); }
+    // нити
+    const [cx0, cy0] = W2S(0, 0);
+    ctx.lineWidth = Math.min(1.4, .5 + k * .08);
+    E.edges.forEach(([a, b]) => {
+      if (!vis[a] || !vis[b]) return;
+      const same = E.lab[a] === E.lab[b], foc = netType < 0 || E.lab[a] === netType || E.lab[b] === netType;
+      ctx.globalAlpha = (same ? .22 : .16) * (foc ? 1 : .25);
+      ctx.strokeStyle = same ? PAL[E.lab[a]] : ink;
+      const [x1, y1] = XY[a], [x2, y2] = XY[b];
+      ctx.beginPath(); ctx.moveTo(x1, y1);
+      if (mode === "web") { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; ctx.quadraticCurveTo(mx + (cx0 - mx) * .18, my + (cy0 - my) * .18, x2, y2); }
+      else ctx.lineTo(x2, y2);
+      ctx.stroke();
+    });
+    // выделенные нити наведённого МО
+    if (hover != null) {
+      ctx.globalAlpha = .9; ctx.strokeStyle = ink; ctx.lineWidth = 1.4;
+      nbr[hover].forEach(j => { const [x1, y1] = XY[hover], [x2, y2] = XY[j]; ctx.beginPath(); ctx.moveTo(x1, y1);
+        if (mode === "web") { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2; ctx.quadraticCurveTo(mx + (cx0 - mx) * .18, my + (cy0 - my) * .18, x2, y2); } else ctx.lineTo(x2, y2);
+        ctx.stroke(); });
+    }
+    // узлы: точки, при сильном приближении — значки типов
+    const asIcon = k >= 3.2;
+    visible.sort((a, b) => popRank[b] - popRank[a]).forEach(i => {
+      const [x, y] = XY[i], foc = netType < 0 || E.lab[i] === netType || i === hover;
+      const r0 = 1.8 + 3.2 * Math.sqrt(MO[i].pop / maxPop), r = r0 * Math.min(2.2, Math.sqrt(k));
+      ctx.globalAlpha = foc ? 1 : .15;
+      if (asIcon && img[E.lab[i]].complete) { const s = Math.max(18, r * 4); ctx.drawImage(img[E.lab[i]], x - s / 2, y - s / 2, s, s); }
+      else { ctx.fillStyle = PAL[E.lab[i]]; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+    });
+    if (hover != null) { const [x, y] = XY[hover]; ctx.globalAlpha = 1; ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.stroke(); }
+    // подписи крупных МО без наложений
+    const placed = [], maxLabels = Math.round(10 + 16 * k);
+    ctx.font = "500 11.5px Onest, sans-serif"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    const cands = [...visible].sort((a, b) => popRank[a] - popRank[b]);
+    if (hover != null) cands.unshift(hover);
+    for (const i of cands) {
+      if (placed.length >= maxLabels) break;
+      if (netType >= 0 && E.lab[i] !== netType && i !== hover) continue;
+      const t = shortName(MO[i].n), [x, y] = XY[i], w = ctx.measureText(t).width, bx = x + 7, by = y - 8;
+      if (bx + w > W || bx < 0 || by < 0 || by + 16 > H) continue;
+      if (placed.some(b => bx < b[0] + b[2] && bx + w > b[0] && by < b[1] + b[3] && by + 16 > b[1])) continue;
+      placed.push([bx, by, w, 16]);
+      ctx.globalAlpha = 1; ctx.strokeStyle = bg; ctx.lineWidth = 3.5; ctx.strokeText(t, bx, y); ctx.fillStyle = ink; ctx.fillText(t, bx, y);
+    }
+    // подписи секторов
+    if (mode === "web") {
+      ctx.font = "600 12.5px Onest, sans-serif";
+      CL.forEach(c => { const a = ang0(c.id), [x, y] = W2S(Math.cos(a) * 1.13, Math.sin(a) * 1.13);
+        const t = c.short || c.name, w = ctx.measureText(t).width, s = 30;
+        const left = Math.cos(a) < -0.2, cen = Math.abs(Math.cos(a)) <= 0.2;
+        const x0 = cen ? x - (w + s + 6) / 2 : left ? x - w - s - 6 : x;
+        ctx.globalAlpha = netType < 0 || netType === c.id ? 1 : .35;
+        if (img[c.id].complete) ctx.drawImage(img[c.id], x0, y - s / 2, s, s);
+        ctx.strokeStyle = bg; ctx.lineWidth = 4; ctx.strokeText(t, x0 + s + 6, y); ctx.fillStyle = ink; ctx.fillText(t, x0 + s + 6, y); });
+    }
     ctx.globalAlpha = 1;
-    nbr[hover].forEach(j => { ctx.fillStyle = PAL[E.lab[j]]; ctx.beginPath(); ctx.arc(X(j), Y(j), 3.6, 0, 7); ctx.fill(); });
-    ctx.fillStyle = PAL[E.lab[hover]]; ctx.strokeStyle = ink; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(X(hover), Y(hover), 6, 0, 7); ctx.fill(); ctx.stroke();
+    quad = d3.quadtree().x(i => XY[i][0]).y(i => XY[i][1]).addAll(visible);
+    $("netCount").textContent = `Показано ${fmt(visible.length)} из ${fmt(N)} муниципалитетов`;
   }
-  drawBase(); addEventListener("resize", drawBase);
-  new MutationObserver(drawBase).observe(root, {attributes: true, attributeFilter: ["data-theme"]});
+  let raf = 0; const redraw = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; draw(); }); };
+
+  // приближение: колесо, щипок, кнопки; одним пальцем на телефоне страница прокручивается как обычно
+  const zoom = d3.zoom().scaleExtent([1, 18])
+    .filter(e => e.type === "wheel" ? true : e.touches ? e.touches.length > 1 : !e.button)
+    .on("zoom", e => { tr = e.transform; hover = null; ntip.style.display = "none"; redraw(); });
+  const sel = d3.select(cv).call(zoom);
+  cv.style.touchAction = "pan-y";
+  $("netIn").onclick = () => sel.transition().duration(300).call(zoom.scaleBy, 1.8);
+  $("netOut").onclick = () => sel.transition().duration(300).call(zoom.scaleBy, 1 / 1.8);
+  $("netReset").onclick = () => sel.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+
+  // смена раскладки с плавным переходом
+  document.querySelectorAll("#netMode button").forEach(b => b.onclick = () => {
+    if (b.dataset.m === mode) return;
+    mode = b.dataset.m; document.querySelectorAll("#netMode button").forEach(x => x.setAttribute("aria-pressed", x === b));
+    const from = pos.map(p => [...p]), to = mode === "web" ? web : umap, t0 = performance.now();
+    const step = now => { const u = Math.min(1, (now - t0) / 700), e = d3.easeCubicInOut(u);
+      pos = from.map((p, i) => [p[0] + (to[i][0] - p[0]) * e, p[1] + (to[i][1] - p[1]) * e]); draw(); if (u < 1) requestAnimationFrame(step); };
+    REDUCED ? (pos = to.map(p => [...p]), draw()) : requestAnimationFrame(step);
+    $("netNote").textContent = mode === "web" ? WEB_NOTE : UMAP_NOTE;
+  });
+
+  // наведение и клик
   const at = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
-  cv.addEventListener("mousemove", e => { const [x, y] = at(e), i = q.find(x, y, 12);
-    if (i !== hover) { hover = i ?? null; render(); }
-    if (i == null) { ntip.style.display = "none"; cv.style.cursor = ""; return; }
-    cv.style.cursor = "pointer";
-    const m = byId.get(E.ids[i]);
-    const same = nbr[i].filter(j => E.lab[j] === E.lab[i]).length;
-    ntip.innerHTML = `<b>${m.n}</b><br><span class="muted">${m.r}</span><br>${CL[E.lab[i]].name}<br>Соседей в сети: ${nbr[i].length}, из них своего типа: ${same}<br><span class="muted">Нажмите, чтобы открыть карточку</span>`;
-    ntip.style.display = "block"; ntip.style.left = Math.max(0, Math.min(x + 12, cv.clientWidth - 270)) + "px"; ntip.style.top = Math.min(y + 8, cv.clientHeight - 110) + "px"; });
-  cv.addEventListener("mouseleave", () => { ntip.style.display = "none"; hover = null; render(); });
-  cv.addEventListener("click", e => { const [x, y] = at(e), i = q.find(x, y, 14); if (i != null) goMap({mo: E.ids[i]}); });
+  cv.addEventListener("mousemove", e => {
+    const [x, y] = at(e), i = quad ? quad.find(x, y, 14) : undefined;
+    if ((i ?? null) !== hover) { hover = i ?? null; redraw(); }
+    if (i == null) { ntip.style.display = "none"; return; }
+    const m = MO[i], same = nbr[i].filter(j => E.lab[j] === E.lab[i]).length;
+    ntip.innerHTML = `<b>${m.n}</b><br><span class="muted">${m.r}</span><br>${CL[E.lab[i]].name}<br>Траты: ${fmt(m.cons)} ₽ в месяц<br>Соседей по сходству: ${nbr[i].length}, своего типа: ${same}<br><span class="muted">Нажмите, чтобы открыть карточку</span>`;
+    ntip.style.display = "block"; ntip.style.left = Math.max(0, Math.min(x + 14, W - 270)) + "px"; ntip.style.top = (cv.offsetTop + Math.min(y + 10, H - 130)) + "px";
+  });
+  cv.addEventListener("mouseleave", () => { ntip.style.display = "none"; if (hover != null) { hover = null; redraw(); } });
+  cv.addEventListener("click", e => { const [x, y] = at(e), i = quad ? quad.find(x, y, 16) : undefined; if (i != null) goMap({mo: E.ids[i]}); });
+
   // кнопки типов под сетью
   const leg = document.createElement("div"); leg.className = "netlegend"; cv.parentNode.appendChild(leg);
   function renderNetLegend() {
     leg.innerHTML = `<button class="chip" data-i="-1" aria-pressed="${netType < 0}">Все типы</button>` +
-      CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${netType === c.id}"><i style="background:${PAL[c.id]}"></i>${c.short || c.name}</button>`).join("");
-    leg.querySelectorAll(".chip").forEach(b => b.onclick = () => { netType = +b.dataset.i; renderNetLegend(); drawBase(); });
+      CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${netType === c.id}">${badgeImg(c.id, 28)}${c.short || c.name}</button>`).join("");
+    leg.querySelectorAll(".chip").forEach(b => b.onclick = () => { netType = +b.dataset.i; renderNetLegend(); draw(); });
   }
+  const WEB_NOTE = "Сектор — тип экономики. У края сектора — ядро типа: почти все похожие на них муниципалитеты того же типа. Ближе к центру — переходные территории: их нити тянутся в соседние сектора.";
+  const UMAP_NOTE = "Раскладка UMAP по тем же признакам: похожие муниципалитеты лежат рядом, типы образуют облака, мосты между ними — переходные территории.";
+  $("netNote").textContent = WEB_NOTE;
   renderNetLegend();
+  addEventListener("resize", resize);
+  new MutationObserver(draw).observe(root, {attributes: true, attributeFilter: ["data-theme"]});
+  resize();
 })();
 
 // ================================================================ методы
@@ -882,7 +1306,7 @@ const TABS = {
   dna: () => {
     const feats = D.meta.dna_features || D.meta.signature_features;
     const col = d3.scaleDiverging(t => d3.interpolateRdBu(1 - t)).domain([-1.5, 0, 1.5]).clamp(true);
-    return [`<table class="dna"><thead><tr><th></th>${CL.map(c => `<th class="c" data-type="${c.id}" data-tip="${A(`<b>${c.name}</b><br><span class='muted'>Нажмите, чтобы открыть тип на карте</span>`)}"><i style="background:${PAL[c.id]}">${c.id + 1}</i></th>`).join("")}</tr></thead><tbody>` +
+    return [`<table class="dna"><thead><tr><th></th>${CL.map(c => `<th class="c" data-type="${c.id}" data-tip="${A(`<b>${c.name}</b><br><span class='muted'>Нажмите, чтобы открыть тип на карте</span>`)}"><i style="background:${PAL[c.id]};color:${onColor(PAL[c.id])}">${c.id + 1}</i></th>`).join("")}</tr></thead><tbody>` +
       feats.map((f, fi) => `<tr><th>${FEAT_RU[f] || f}</th>${CL.map(c => { const v = c.z[f];
         const tipHtml = `<b>${c.name}</b><br>${FEAT_RU[f] || f}: ${featVal(f, c.prof)}<br>${v > 0 ? "Выше" : "Ниже"} среднего на ${ru.format(".1f")(Math.abs(v))} ст. откл.`;
         return `<td data-type="${c.id}" data-f="${fi}" data-tip="${A(tipHtml)}" style="background:${col(v)};color:${Math.abs(v) > 0.9 ? "#fff" : "#222"}">${v > 0 ? "+" : ""}${ru.format(".1f")(v)}</td>`; }).join("")}</tr>`).join("") +
@@ -924,9 +1348,12 @@ renderTab("methods");
 // ================================================================ доверие, данные
 const best = D.methods.find(r => r.method === D.meta.final_method);
 $("trust").innerHTML = `
-  <div><h3>Метод выбран сравнением</h3><p>${D.edges.filter(r => r.method === "spectral").length} правил построения сети и ${D.methods.length} методов кластеризации по шести индексам качества: SW, CH, S_Dbw, AVI, AVU, MQ.</p></div>
-  <div><h3>Результат устойчив</h3><p>Соседние месяцы совпадают с ARI ${f2(best ? best.ARI_consecutive : D.temporal.ARI_consecutive)}; смена seed, масштаба ядра и памяти почти не меняет разбиение.</p></div>
-  <div><h3>Карта подтверждает</h3><p>Координат в модели нет, но ${D.spat ? `соседи по дороге совпадают по типу в ${pct(D.spat.observed_same_cluster_share)} случаев против ${pct(D.spat.null_mean)} случайно` : "типы складываются в связные районы"}.</p></div>`;
+  <div><h3>Метод выбран сравнением</h3><p>Мы не назначили метод заранее, а сравнили ${D.edges.filter(r => r.method === "spectral").length} правил построения сети и ${D.methods.length} методов кластеризации по шести индексам качества (SW, CH, S_Dbw, AVI, AVU, MQ), стабильности во времени и устойчивости к подвыборке. Итоговая модель — лучшая по среднему рангу.</p></div>
+  <div><h3>Число типов не на глаз</h3><p>Индексы качества почти монотонны по числу типов, поэтому k выбрано по устойчивости: наибольшее k, при котором разбиение воспроизводится на случайных 80% муниципалитетов с ARI не ниже 0,8. При 8 типах это так, при 9 устойчивость обрывается до 0,53.</p></div>
+  <div><h3>Результат устойчив</h3><p>Соседние месяцы совпадают с ARI ${f2(best ? best.ARI_consecutive : D.temporal.ARI_consecutive)}. Смена случайного зерна, масштаба ядра и памяти модели почти не меняет разбиение (ARI 0,93–1,00). Ядро типологии переживает изменение весов признаков; чувствительны только два переходных сибирских типа, и мы так и пишем.</p></div>
+  <div><h3>Карта подтверждает</h3><p>Координат в модели нет, но ${D.spat ? `соседи по дороге совпадают по типу в ${pct(D.spat.observed_same_cluster_share)} случаев против ${pct(D.spat.null_mean)} при случайных метках (z = ${ru.format(".0f")(D.spat.z)})` : "типы складываются в связные районы"}. Типы совпадают с известными экономическими районами: нефтегазовые Югра и Ямал, алмазная Якутия, Подмосковье.</p></div>
+  <div><h3>Индексы проверены тестами</h3><p>Реализации AVI, AVU, MQ и S_Dbw проверены автотестами на графах с заранее известным ответом. Там же зафиксировано свойство AVU: при двух кластерах он равен 1 для любого разбиения.</p></div>
+  <div><h3>Ограничения названы</h3><p>Два года данных, отраслевая структура только по крупным и средним организациям, безналичные траты без наличных, восемь регионов без данных СберИндекса. Все ограничения перечислены в отчёте.</p></div>`;
 $("csvBtn").onclick = () => {
   const esc = s => `"${String(s).replace(/"/g, '""')}"`;
   const head = ["territory_id", "name", "region", ...D.months].join(",");

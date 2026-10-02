@@ -11,7 +11,7 @@ from . import viz
 
 
 def main(cfg_path: str):
-    cfg = yaml.safe_load(open(cfg_path))
+    cfg = yaml.safe_load(open(cfg_path, encoding="utf-8"))
     res = Path(cfg["paths"]["results"])
     fig = Path(cfg["paths"]["figures"]); fig.mkdir(parents=True, exist_ok=True)
     meta = yaml.safe_load(open("configs/cluster_names.yaml", encoding="utf-8"))

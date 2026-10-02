@@ -44,6 +44,24 @@ def bundle() -> str:
     return str(out)
 
 
+def rar_tool() -> str:
+    """Чем распаковать RAR v5. Нужен bsdtar (libarchive): в macOS и Windows 10+ это системный `tar`,
+    в Linux — пакет libarchive-tools (`bsdtar`). GNU tar RAR не читает."""
+    import os
+    import shutil
+    cands = [shutil.which("bsdtar"), shutil.which("tar")]
+    if os.name == "nt":   # системный tar Windows — это bsdtar; в Git Bash его может заслонять GNU tar
+        cands.append(os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "tar.exe"))
+    for exe in filter(None, cands):
+        try:
+            if "bsdtar" in subprocess.run([exe, "--version"], capture_output=True, text=True).stdout:
+                return exe
+        except OSError:
+            continue
+    raise SystemExit("Не найден bsdtar для распаковки справочника МО (RAR). "
+                     "Linux: sudo apt install libarchive-tools; macOS и Windows 10+: встроенный tar.")
+
+
 def main():
     RAW.mkdir(parents=True, exist_ok=True)
     verify = bundle()
@@ -59,8 +77,7 @@ def main():
             if info.filename.endswith(".parquet"):
                 z.extract(info, RAW)
     (RAW / "dict").mkdir(exist_ok=True)
-    # RAR v5: распаковывает bsdtar (есть в macOS и большинстве Linux)
-    subprocess.run(["bsdtar", "-xf", str(RAW / "municipal_dict.rar"), "-C", str(RAW / "dict")], check=True)
+    subprocess.run([rar_tool(), "-xf", str(RAW / "municipal_dict.rar"), "-C", str(RAW / "dict")], check=True)
     print("готово:", sorted(p.name for p in (RAW / "hackathonlicence").glob("*.parquet")))
 
 

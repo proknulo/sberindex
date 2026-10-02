@@ -116,6 +116,8 @@ def web_layers(ids: np.ndarray, raw: Path, tol_deg: float = 0.003, tol_other: fl
     sel = g.index.isin(ids)
     mo = {int(t): _enc_geom(geom.simplify(tol_deg, preserve_topology=True), min_area=1e-4)
           for t, geom in g[sel].geometry.items()}
+    # точка внутри каждого МО — место для значка типа на карте
+    mo_pt = {int(t): [round(p.x, 4), round(p.y, 4)] for t, p in g[sel].geometry.representative_point().items()}
     other = [{"n": r.municipal_district_name, "r": r.region_name,
               "g": _enc_geom(r.geometry.simplify(tol_other, preserve_topology=True), min_area=1e-4)}
              for r in g[~sel].itertuples()]
@@ -130,7 +132,7 @@ def web_layers(ids: np.ndarray, raw: Path, tol_deg: float = 0.003, tol_other: fl
         regions.append({"code": int(code), "n": r.region_name,
                         "b": _enc_lines(geom.simplify(tol_region, preserve_topology=True).boundary),
                         "c": [round(pt.y, 3), round(pt.x, 3)], "a": round(geom.area, 1)})
-    return {"q": Q, "mo": mo, "other": other, "regions": regions, "russia": russia}
+    return {"q": Q, "mo": mo, "pt": mo_pt, "other": other, "regions": regions, "russia": russia}
 
 
 def write_geo_js(ids: np.ndarray, raw: Path, landing: Path) -> None:
@@ -150,7 +152,7 @@ if __name__ == "__main__":
     import yaml
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/default.yaml")
-    cfg = yaml.safe_load(open(ap.parse_args().config))
+    cfg = yaml.safe_load(open(ap.parse_args().config, encoding="utf-8"))
     land = Path(cfg["paths"]["landing"])
     s = (land / "data.js").read_text(encoding="utf-8")
     ids = np.array([m["id"] for m in json.loads(s[s.index("{"):s.rindex("}") + 1])["mos"]])

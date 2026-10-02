@@ -1,21 +1,34 @@
-PY=.venv/bin/python
+# Обёртка над run.py для тех, у кого есть make (macOS, Linux). В Windows используйте python run.py <шаг>.
+PY ?= python3
 
-.PHONY: setup data run landing report all
+.PHONY: setup data run robustness intracity report landing test serve all
 
-setup:
-	python3 -m venv .venv && $(PY) -m pip install -r requirements.txt && $(PY) -m pip install -e .
+setup:       ## виртуальное окружение и зависимости
+	$(PY) run.py setup
 
-data:            ## скачать данные СберИндекса, справочник МО и выгрузку БДПМО Росстата
-	$(PY) scripts/get_data.py
-	$(PY) scripts/download_rosstat.py
+data:        ## данные СберИндекса, справочник МО и выгрузка БДПМО Росстата
+	$(PY) run.py data
 
-run:             ## весь аналитический пайплайн (≈10 мин на ноутбуке)
-	$(PY) -m sbx.pipeline --config configs/default.yaml
+run:         ## аналитический пайплайн (≈10 мин)
+	$(PY) run.py pipeline
 
-landing:         ## данные для интерактивного лендинга
-	$(PY) -m sbx.landing --config configs/default.yaml
+robustness:  ## проверки надёжности
+	$(PY) run.py robustness
 
-report:          ## рисунки для методологического отчёта
-	$(PY) -m sbx.figures --config configs/default.yaml
+intracity:   ## внутригородской анализ Москвы и Санкт-Петербурга
+	$(PY) run.py intracity
 
-all: data run report landing
+report:      ## рисунки для отчёта
+	$(PY) run.py figures
+
+landing:     ## данные для интерактивного лендинга
+	$(PY) run.py landing
+
+test:        ## тесты индексов качества
+	$(PY) run.py test
+
+serve:       ## открыть лендинг на http://localhost:8000
+	$(PY) run.py serve
+
+all:         ## всё по порядку
+	$(PY) run.py all

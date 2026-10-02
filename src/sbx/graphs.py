@@ -39,7 +39,8 @@ def knn_from_similarity(S: np.ndarray, k: int) -> sp.csr_matrix:
     n = S.shape[0]
     S = S.copy()
     np.fill_diagonal(S, -np.inf)
-    idx = np.argpartition(-S, k, axis=1)[:, :k]
+    # устойчивая сортировка: при равных значениях порядок одинаков на любой платформе и версии NumPy
+    idx = np.argsort(-S, axis=1, kind="stable")[:, :k]
     rows = np.repeat(np.arange(n), k)
     cols = idx.ravel()
     vals = np.clip(S[rows, cols], 1e-6, None)
@@ -52,7 +53,7 @@ def knn_from_distance(D: np.ndarray | None, k: int, sigma_nn: int, X: np.ndarray
         nn = NearestNeighbors(n_neighbors=max(k, sigma_nn) + 1).fit(X)
         dist, idx = nn.kneighbors(X)
     else:
-        idx = np.argsort(D, axis=1)[:, : max(k, sigma_nn) + 1]
+        idx = np.argsort(D, axis=1, kind="stable")[:, : max(k, sigma_nn) + 1]
         dist = np.take_along_axis(D, idx, 1)
     sigma = dist[:, sigma_nn] + 1e-12
     n = dist.shape[0]
@@ -135,7 +136,8 @@ def dtw_matrix(s: np.ndarray, band: int) -> np.ndarray:
 def geo_graph(road_km: np.ndarray, k: int, scale_km: float) -> sp.csr_matrix:
     D = np.where(np.isnan(road_km), np.inf, road_km)
     np.fill_diagonal(D, np.inf)
-    idx = np.argpartition(D, k, axis=1)[:, :k]
+    # дорожные расстояния часто совпадают до 0,1 км: устойчивая сортировка делает выбор соседей детерминированным
+    idx = np.argsort(D, axis=1, kind="stable")[:, :k]
     n = D.shape[0]
     rows = np.repeat(np.arange(n), k)
     cols = idx.ravel()

@@ -40,7 +40,7 @@ def panel_ari(A, B):
 
 
 def main(cfg_path):
-    cfg = yaml.safe_load(open(cfg_path))
+    cfg = yaml.safe_load(open(cfg_path, encoding="utf-8"))
     res = Path(cfg["paths"]["results"])
     ds = load_all(cfg)
     base = np.load(res / "final_labels.npy")
@@ -89,7 +89,7 @@ def main(cfg_path):
         null = [float((p[nb] == p[:, None])[ok].mean()) for p in (rng.permutation(lab) for _ in range(1000))]
         out = {"observed_same_cluster_share": obs, "null_mean": float(np.mean(null)), "null_sd": float(np.std(null)),
                "z": float((obs - np.mean(null)) / np.std(null)), "p_value": float((np.sum(np.array(null) >= obs) + 1) / 1001)}
-    json.dump(out, open(res / "robustness_spatial.json", "w"), indent=1)
+    json.dump(out, open(res / "robustness_spatial.json", "w", encoding="utf-8"), indent=1)
     print(out)
 
 

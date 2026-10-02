@@ -35,9 +35,18 @@ S.verify = str(ROOT / "certs/bundle.pem")
 S.headers["User-Agent"] = "Mozilla/5.0"
 
 
+def read_cached(path):
+    # кэш пишется в UTF-8; старые копии, сохранённые в Windows в кодировке системы, читаются как cp1251
+    raw = path.read_bytes()
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode("cp1251")
+
+
 def post(url, data, cache_file):
     if cache_file.exists():
-        return cache_file.read_text()
+        return read_cached(cache_file)
     failed = cache_file.with_suffix(".failed")
     if failed.exists():
         raise RuntimeError(f"ранее не удалось: {url} {data.get('pl')}")
@@ -47,7 +56,7 @@ def post(url, data, cache_file):
             r.encoding = "cp1251"
             if r.status_code == 200:
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
-                cache_file.write_text(r.text)
+                cache_file.write_text(r.text, encoding="utf-8")
                 return r.text
         except requests.RequestException as e:
             print("  retry", attempt, e, file=sys.stderr)

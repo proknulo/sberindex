@@ -14,8 +14,12 @@ matplotlib.use("Agg")
 plt.rcParams.update({"figure.dpi": 130, "font.size": 9, "axes.spines.top": False, "axes.spines.right": False,
                      "font.family": "DejaVu Sans"})
 
-PALETTE = ["#2E6FDB", "#E0782A", "#1FA187", "#C43C5A", "#7B5CC7", "#B99A1E", "#3AA3C9",
-           "#8C5A3C", "#5E8C2E", "#D05FA8", "#6B7785", "#A63A1E", "#2A8C6B", "#9C7FD6"]
+# Первые 8 цветов — смысловая палитра типов, как на лендинге (landing/index.html, PAL): цвет следует
+# фишке типа — черепица дома (пригороды), лёд (Северо-Восток), сырая нефть (ресурсные центры), огни города,
+# море (Сибирь и ДВ), кирпич завода, хвоя (сельская Сибирь), спелый колос (аграрная глубинка).
+# Остальные — запасные для k > 8 при выборе числа кластеров.
+PALETTE = ["#E07B39", "#7CC6EE", "#7A5230", "#7B4FC9", "#14808F", "#C2452D", "#2E8B57", "#E0B12E",
+           "#5E8C2E", "#D05FA8", "#6B7785", "#A63A1E", "#2A8C6B", "#9C7FD6"]
 
 RULE_RU = {"attr": "Атрибуты (гаусс. ядро)", "cosine": "Косинус структуры трат", "corr": "Корреляция динамики",
            "lagcorr": "Лаговая корреляция", "dtw": "DTW", "geo": "Дорожная близость", "hybrid": "Гибрид (атрибуты+динамика)"}
@@ -119,7 +123,7 @@ def dynamics(res: Path, fig: Path, names: dict[int, str], months: list[str]):
     L = np.load(res / "final_labels.npy")
     k = L.max() + 1
     share = np.array([[np.mean(L[t] == c) for c in range(k)] for t in range(len(L))])
-    tm = json.load(open(res / "final_temporal.json"))
+    tm = json.load(open(res / "final_temporal.json", encoding="utf-8"))
     f, axs = plt.subplots(1, 2, figsize=(12, 4), gridspec_kw={"width_ratios": [2, 1.2]})
     axs[0].stackplot(range(len(months)), share.T * 100, colors=PALETTE[:k],
                      labels=[f"{c + 1}. {names.get(c, c)}" for c in range(k)])
@@ -128,7 +132,7 @@ def dynamics(res: Path, fig: Path, names: dict[int, str], months: list[str]):
     axs[0].set_xlim(0, len(months) - 1)
     axs[0].legend(fontsize=6.5, loc="upper left", bbox_to_anchor=(1, 1), frameon=False)
     axs[0].set_title("Состав кластеров во времени")
-    axs[1].plot(range(1, len(months)), np.array(tm["switch_series"]) * 100, marker="o", color="#C43C5A")
+    axs[1].plot(range(1, len(months)), np.array(tm["switch_series"]) * 100, marker="o", color="#1f2328")
     axs[1].set_xticks(range(1, len(months), 3), months[1::3], rotation=30)
     axs[1].set_title("Доля МО, сменивших кластер за месяц, %")
     f.tight_layout()

@@ -1,0 +1,34 @@
+Код проекта (каталоги src/, scripts/, tests/, landing/index.html, run.py) — лицензия MIT.
+
+MIT License
+
+Copyright (c) 2026 авторы проекта «Типы локальных экономик России»
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+-------------------------------------------------------------------------------
+
+Результаты и производные данные (results/, landing/data.js, landing/geo.js,
+docs/, презентация) — лицензия Creative Commons Attribution-ShareAlike 4.0
+International (CC BY-SA 4.0), https://creativecommons.org/licenses/by-sa/4.0/
+Они построены на открытых данных СберИндекса (CC BY-SA 4.0) и Базы данных
+показателей муниципальных образований Росстата; при использовании укажите
+источники: «СберИндекс, sberindex.ru» и «Росстат, БДПМО».
+
+Подложка карты на лендинге: © участники OpenStreetMap, OpenFreeMap / OpenMapTiles.

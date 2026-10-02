@@ -70,7 +70,7 @@ def rank_table(df: pd.DataFrame, cols: list[str]) -> pd.Series:
 
 
 def main(cfg_path: str):
-    cfg = yaml.safe_load(open(cfg_path))
+    cfg = yaml.safe_load(open(cfg_path, encoding="utf-8"))
     seed = cfg["seed"]
     out = Path(cfg["paths"]["results"]); out.mkdir(parents=True, exist_ok=True)
     proc = Path(cfg["paths"]["processed"]); proc.mkdir(parents=True, exist_ok=True)
@@ -210,7 +210,7 @@ def main(cfg_path: str):
     lab_df.to_csv(out / "final_labels.csv")
 
     tm = Dy.temporal_metrics(L)
-    json.dump({kk: v for kk, v in tm.items()}, open(out / "final_temporal.json", "w"), indent=1)
+    json.dump({kk: v for kk, v in tm.items()}, open(out / "final_temporal.json", "w", encoding="utf-8"), indent=1)
     Dy.event_log(L, months, cfg["dynamics"]["match_min_jaccard"]).to_csv(out / "final_events.csv", index=False)
     pd.DataFrame(Dy.transition_matrix(L)).to_csv(out / "final_transitions.csv")
 
@@ -269,7 +269,7 @@ def main(cfg_path: str):
                  ).to_csv(out / "final_leadlag.csv", index_label="type")
 
     json.dump({"transitions_to_two_nearest_types_share": float(share_adj),
-               "centroid_distance": np.round(dc, 3).tolist()}, open(out / "final_transition_adjacency.json", "w"), indent=1)
+               "centroid_distance": np.round(dc, 3).tolist()}, open(out / "final_transition_adjacency.json", "w", encoding="utf-8"), indent=1)
 
     # внешняя валидация: смесь типов МО и регионов в кластерах
     pd.crosstab(summary.modal_cluster, summary.mo_type).to_csv(out / "final_cluster_x_type.csv")
@@ -284,7 +284,7 @@ def main(cfg_path: str):
     for i in range(N):
         cand = [int(j) for j in idx[i, 1:] if reg[j] != reg[i]][:5]
         twins[int(mo.index[i])] = [int(mo.index[j]) for j in cand]
-    json.dump(twins, open(out / "final_twins.json", "w"))
+    json.dump(twins, open(out / "final_twins.json", "w", encoding="utf-8"))
 
     # раскладка сети для лендинга: UMAP по признакам опорного месяца
     import umap
@@ -292,7 +292,7 @@ def main(cfg_path: str):
     U = __import__("scipy.sparse", fromlist=["triu"]).triu(Ws[ref_t], k=1).tocoo()
     json.dump({"ids": [int(i) for i in mo.index], "xy": np.round(xy, 3).tolist(),
                "lab": L[ref_t].tolist(), "edges": np.column_stack([U.row, U.col]).tolist()},
-              open(out / "embedding.json", "w"))
+              open(out / "embedding.json", "w", encoding="utf-8"))
     log("готово")
     return cfg, ds, F, labels, L
 
