@@ -42,7 +42,10 @@ def build(cfg_path: str):
     twins = json.load(open(res / "final_twins.json", encoding="utf-8"))
     ids = mo.index.to_numpy()
 
-    write_geo_js(ids, Path(cfg["paths"]["raw"]), land)   # полигоны МО и субъектов для карты → landing/geo.js
+    intra = build_intracity(res, proc, names, months)
+    intra_ids = np.array([m["id"] for m in intra["mos"]]) if intra else None
+    # полигоны МО, районов столиц и субъектов для карты → landing/geo.js
+    write_geo_js(ids, Path(cfg["paths"]["raw"]), land, intra_ids)
 
     # по МО: метки по месяцам + ключевые показатели (декабрь 2024 и средние)
     last = raw.xs(months[-1], level="month")
@@ -99,11 +102,49 @@ def build(cfg_path: str):
     data = {"months": months, "mos": mos, "clusters": clusters, "flows": flows, "qsteps": q,
             "temporal": tm, "traj": traj, "adj": adj["transitions_to_two_nearest_types_share"], "rob": rob, "spat": spat,
             "methods": methods, "edges": edges, "ksel": ksel, "events": events, "emb": emb,
-            "meta": names.get("meta", {})}
+            "intra": intra, "meta": names.get("meta", {})}
     js = "window.DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";"
     (land / "data.js").write_text(js, encoding="utf-8")
     print("landing/data.js", round(len(js) / 1e6, 2), "MB")
     stamp_version(land)
+
+
+INTRA_PREFIX = "внутригородская территория города федерального значения "
+
+
+def district_name(n: str) -> str:
+    """«…муниципальный округ Тверской» → «Тверской», «…поселение Рязановское» → «поселение Рязановское»."""
+    n = n.replace(INTRA_PREFIX, "")
+    for p in ("муниципальный округ ", "муниципальное образование "):
+        n = n.replace(p, "")
+    return n.replace('""', '"').strip()
+
+
+def build_intracity(res: Path, proc: Path, names: dict, months: list[str]) -> dict | None:
+    """Районы Москвы и Петербурга: внутригородская типология (sbx.intracity) для отдельного слоя карты."""
+    if not (res / "intracity_labels.csv").exists() or not (proc / "intracity_raw.parquet").exists():
+        return None
+    lab = pd.read_csv(res / "intracity_labels.csv", index_col=0)
+    summ = pd.read_csv(res / "intracity_summary.csv", index_col=0)
+    prof = pd.read_csv(res / "intracity_profiles.csv", index_col=0)
+    raw = pd.read_parquet(proc / "intracity_raw.parquet")
+    last = raw.xs(months[-1], level="month")
+    mean = raw.groupby(level="territory_id").mean()
+    mos = [{"id": int(t), "n": district_name(summ.loc[t, "name"]), "r": summ.loc[t, "region_name"],
+            "L": lab.loc[t, months].astype(int).tolist(),
+            "cons": int(last.loc[t, "cons_total_rub"]),
+            "sh": {k: _r(mean.loc[t, f"share_{k}"], 3) for k in ["food", "health", "catering", "transport", "marketplaces", "other"]},
+            "sa": _r(mean.loc[t, "season_amp"], 3), "sw": int(summ.loc[t, "n_switches"]),
+            "conf": _r(summ.loc[t, "type_confidence"], 2)} for t in lab.index]
+    meta = names.get("intracity", {})
+    clusters = []
+    for c in prof.index:
+        members = summ[summ.modal_cluster == c]
+        clusters.append({"id": int(c), **meta.get(int(c), {"name": f"Тип {c + 1}", "short": f"Тип {c + 1}", "desc": ""}),
+                         "size": int(prof.loc[c, "n"]),
+                         "msk": int((members.region_name == "Москва").sum()), "spb": int((members.region_name == "Санкт-Петербург").sum()),
+                         "prof": {k: _r(v, 4) for k, v in prof.loc[c].items()}})
+    return {"clusters": clusters, "mos": mos}
 
 
 def stamp_version(land: Path) -> None:

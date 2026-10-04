@@ -11,8 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
-<script src="data.js?v=da0fd380"></script>
-<script src="geo.js?v=da0fd380"></script>
+<script src="data.js?v=6d6050b7"></script>
+<script src="geo.js?v=6d6050b7"></script>
 <style>
 :root{
   --bg:#ffffff; --panel:#f6f7f9; --chip:#f1f2f4; --ink:#1f2328; --ink2:#3e4550; --ink3:#616975;
@@ -66,6 +66,17 @@ header.top nav a:hover{color:var(--ink)}
 .maphead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 #map{position:relative;width:100%;height:620px;margin-top:16px;border-radius:16px;overflow:hidden;background:var(--panel)}
+.maploading{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;color:var(--ink2,#555);background:var(--panel);transition:opacity .4s}
+.maploading.done{opacity:0;pointer-events:none}
+.portrait.cap{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.ilist{display:flex;flex-direction:column;gap:8px}
+.itype{display:flex;gap:12px;align-items:flex-start;text-align:left;font:inherit;color:inherit;background:var(--panel);border:1px solid transparent;border-radius:12px;padding:10px 12px;cursor:pointer}
+.itype:hover{border-color:var(--ink3)}
+.itype[aria-pressed="true"]{border-color:var(--ink)}
+.itype>i{flex:0 0 14px;height:14px;border-radius:4px;margin-top:4px}
+.itype .d{font-size:14px;line-height:1.5;color:var(--ink2)}
+.maploading .spin{width:18px;height:18px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .maplibregl-ctrl-attrib{font-size:10px}
 .mapbar{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .mapbar .month{font-weight:500;font-size:15px;min-width:76px}
@@ -268,7 +279,7 @@ canvas#net:active{cursor:grabbing}
 
 /* мобильная версия */
 @media (max-width:900px){
-  .portrait,.mocard,.storybody{grid-template-columns:1fr;gap:28px}
+  .portrait,.portrait.cap,.mocard,.storybody{grid-template-columns:1fr;gap:28px}
   .intro,.trust,.explain{grid-template-columns:1fr;gap:20px}
   .stories{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -342,7 +353,7 @@ canvas#net:active{cursor:grabbing}
         </div>
         <div class="seg one"><button id="iconsBtn" aria-pressed="true">Значки типов</button></div>
       </div>
-      <div id="map"><div class="tip" id="tip"></div></div>
+      <div id="map"><div class="maploading" id="mapLoading"><span class="spin"></span>Загружаем карту…</div><div class="tip" id="tip"></div></div>
       <div class="legend" id="legend"></div>
       <div class="mapbar">
         <div class="timeline" id="timeline">
@@ -366,7 +377,8 @@ canvas#net:active{cursor:grabbing}
       <li><b>Траты</b> — безналичные траты жителя в месяц по данным СберИндекса, декабрь 2024; цвета — пять равных по числу МО групп (квинтили).</li>
       <li><b>Маркетплейсы</b> — доля маркетплейсов в тратах жителя, среднее за 2023–2024, тоже квинтили.</li>
       <li><b>Смены типа</b> — сколько раз за 24 месяца тип МО отличался от предыдущего месяца.</li>
-      <li><b>Серым</b> показаны внутригородские территории Москвы и Петербурга (их разбираем отдельно, в отчёте) и регионы, по которым у СберИндекса нет данных.</li>
+      <li><b>Районы Москвы и Петербурга</b> — 243 внутригородские территории — окрашены оттенками винного в свои 5 внутригородских типов. Они не входят в основную модель (это части единого рынка труда, и данных Росстата по ним нет), поэтому типизированы отдельно, только по тратам. Кнопка «Москва и Петербург» открывает их портрет.</li>
+      <li><b>Серым</b> показаны регионы, по которым у СберИндекса нет данных.</li>
     </ul><p>Нажмите на класс в легенде слоя, чтобы оставить на карте только его муниципалитеты.</p></div></details>
   </section>
 
@@ -398,7 +410,7 @@ canvas#net:active{cursor:grabbing}
   <section id="net-s">
     <h2>Сеть экономической близости</h2>
     <p class="sub">Каждый муниципалитет связан нитями с 15 самыми похожими по экономике (июнь 2024). Наведите на узел, чтобы увидеть его нити; нажмите, чтобы открыть карточку.</p>
-<div class="explain"><div><h3>Что показано</h3><p>Сеть, на которой ищутся типы. Нить появляется, если два МО входят в число <b>15 ближайших</b> друг для друга по 25 признакам. Чем ближе признаки, тем прочнее связь. Сеть перестраивается каждый месяц; здесь — июнь 2024.</p></div><div><h3>Как читать</h3><p>В паутине сектор — это тип. У края сектора — ядро типа, ближе к центру — переходные территории. Колесо мыши или щипок приближают: становится видно больше городов, а узлы превращаются в фишки. Режим «Карта сходства» раскладывает те же узлы по UMAP.</p></div><div><h3>Что мы видим</h3><p><span id="xNet">Большинство нитей соединяют муниципалитеты одного типа</span>. Переходные территории тянут нити в соседние сектора. Именно по ним проходят смены типа на карте.</p></div></div>
+<div class="explain"><div><h3>Что показано</h3><p>Сеть, на которой ищутся типы. Нить появляется, если хотя бы один из двух МО входит в число <b>15 ближайших</b> к другому по 25 признакам. Чем ближе признаки, тем прочнее связь. Сеть перестраивается каждый месяц; здесь — июнь 2024.</p></div><div><h3>Как читать</h3><p>В паутине сектор — это тип. У края сектора — ядро типа, ближе к центру — переходные территории. Колесо мыши или щипок приближают: становится видно больше городов, а узлы превращаются в фишки. Режим «Карта сходства» раскладывает те же узлы по UMAP.</p></div><div><h3>Что мы видим</h3><p><span id="xNet">Большинство нитей соединяют муниципалитеты одного типа</span>. Переходные территории тянут нити в соседние сектора. Именно по ним проходят смены типа на карте.</p></div></div>
     <div class="netbox">
       <div class="netbar">
         <div class="seg" id="netMode" role="group" aria-label="Раскладка сети"><button data-m="web" aria-pressed="true">Паутина</button><button data-m="umap" aria-pressed="false">Карта сходства</button></div>
@@ -447,6 +459,7 @@ canvas#net:active{cursor:grabbing}
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M3 13h10"></path></svg>
         Скачать типы по месяцам, CSV
       </button>
+      <button class="btn" id="csvIntraBtn">Районы Москвы и Петербурга, CSV</button>
       <a class="btn" href="https://github.com/proknulo/sberindex/blob/main/docs/report.md">Методологический отчёт</a>
       <a class="btn" href="https://github.com/proknulo/sberindex/raw/main/docs/presentation.pptx">Презентация</a>
       <a class="btn" href="https://github.com/proknulo/sberindex">Код и инструкция</a>
@@ -464,6 +477,12 @@ const onColor = hex => { const n = parseInt(hex.slice(1), 16), l = (0.299 * (n >
 const SEQ = ["#dce8f7","#a9c6ec","#6f9fdb","#3d74c2","#1f4c8f"];
 const K = D.clusters.length, T = D.months.length, CL = D.clusters, NMO = D.mos.length;
 const byId = new Map(D.mos.map(m => [m.id, m]));
+// районы Москвы и Петербурга: своя внутригородская типология (5 типов, только траты; см. отчёт §7.5)
+const INTRA = D.intra || {clusters: [], mos: []};
+const ICL = INTRA.clusters, IK = ICL.length, byIdI = new Map(INTRA.mos.map(m => [m.id, m]));
+// оттенки «винного» ряда: темнее — выше траты (типы упорядочены по убыванию трат)
+const IPAL = ["#6B0D38", "#A12B62", "#CF5A90", "#E28AB2", "#EDB5CF"];
+const plural = (n, one, few, many) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 12 || b > 14) ? few : many; };
 const ru = d3.formatLocale({decimal: ",", thousands: " ", grouping: [3], currency: ["", " ₽"]});
 const fmt = ru.format(",.0f"), pct = ru.format(".0%"), pct1 = ru.format(".1%"), f2 = ru.format(".2f"), f3 = ru.format(".3f");
 const MONTH_RU = ["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
@@ -499,9 +518,9 @@ const GLYPHS = [
   [/Северо/, `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9M9.5 4.6 12 6.2l2.5-1.6M9.5 19.4 12 17.8l2.5 1.6M4.5 10.6l2.6-.1-1.3-2.6M19.5 13.4l-2.6.1 1.3 2.6"/></g>`], // снежинка
   [/Ресурс/, `<g fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 7.4 21M12 3l4.6 18M9 14.5h6M10.1 10h3.8M5.5 21h13M12 3v3"/></g>`], // вышка
   [/Крупн/, `<path d="M3.5 21V11h5v10zM9.8 21V3.5h5.4V21zM16.5 21v-7.5h4V21z"/><path fill-opacity=".45" d="M11.2 6h1v1.2h-1zm1.6 0h1v1.2h-1zM11.2 9h1v1.2h-1zm1.6 0h1v1.2h-1zM11.2 12h1v1.2h-1zm1.6 0h1v1.2h-1z"/>`], // небоскрёбы
-  [/Сибирь и/, `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.9"/><path d="M12 7v13.5M8 10.5h8M4.8 13.5a7.2 7.2 0 0 0 14.4 0"/></g>`], // якорь
-  [/Индустри/, `<path d="M2.5 21V11.5l5 3v-3l5 3V8.5h2.2V3.5h2.6v5h1.4V3.5h2.6V21z"/>`],                               // завод
   [/Сельская/, `<path d="M12 2.5 6.8 9.6h3L5.2 16h5.3v5.5h3V16h5.3l-4.6-6.4h3z"/>`],                                    // ель
+  [/Сибирь/, `<g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="5" r="1.9"/><path d="M12 7v13.5M8 10.5h8M4.8 13.5a7.2 7.2 0 0 0 14.4 0"/></g>`], // якорь
+  [/Индустри/, `<path d="M2.5 21V11.5l5 3v-3l5 3V8.5h2.2V3.5h2.6v5h1.4V3.5h2.6V21z"/>`],                               // завод
   [/Аграр/, `<path d="M12 9c-2.2-1-3.4-3.1-3.4-5.6 2.2 1 3.4 3.1 3.4 5.6zm0 0c2.2-1 3.4-3.1 3.4-5.6-2.2 1-3.4 3.1-3.4 5.6zm0 5c-2.4-1-3.8-3.2-3.8-5.6 2.4 1 3.8 3.2 3.8 5.6zm0 0c2.4-1 3.8-3.2 3.8-5.6-2.4 1-3.8 3.2-3.8 5.6zm0 5c-2.4-1-3.8-3.2-3.8-5.6 2.4 1 3.8 3.2 3.8 5.6zm0 0c2.4-1 3.8-3.2 3.8-5.6-2.4 1-3.8 3.2-3.8 5.6z"/><path d="M11.2 9h1.6v12h-1.6z"/>`] // колос
 ];
 const glyphOf = c => (GLYPHS.find(([re]) => re.test(c.short || c.name)) || [null, `<circle cx="12" cy="12" r="5"/>`])[1];
@@ -537,7 +556,7 @@ function featVal(f, p) {
   return f3(v);
 }
 
-$("lead").textContent = `Каждый из ${fmt(NMO)} муниципалитетов относится к одному из ${K} типов. Выберите тип, переключите слой или найдите свой город.`;
+$("lead").textContent = `Каждый из ${fmt(NMO)} муниципалитетов относится к одному из ${K} типов, а ${fmt(INTRA.mos.length)} ${plural(INTRA.mos.length, "район", "района", "районов")} Москвы и Петербурга — к одному из ${IK} внутригородских. Выберите тип, переключите слой или найдите свой город.`;
 $("themeBtn").onclick = () => {
   const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
   root.dataset.theme = dark ? "light" : "dark";
@@ -551,6 +570,7 @@ const GQ = GEO.q;
 const decRing = r => { const out = []; let x = 0, y = 0; for (let i = 0; i < r.length; i += 2) { x += r[i]; y += r[i + 1]; out.push([x / GQ, y / GQ]); } return out; };
 const decPoly = g => g.map(poly => poly.map(decRing));
 const moFC = {type: "FeatureCollection", features: D.mos.filter(m => GEO.mo[m.id]).map(m => ({type: "Feature", id: m.id, properties: {}, geometry: {type: "MultiPolygon", coordinates: decPoly(GEO.mo[m.id])}}))};
+const intraFC = {type: "FeatureCollection", features: INTRA.mos.filter(m => GEO.intra && GEO.intra[m.id]).map(m => ({type: "Feature", id: m.id, properties: {}, geometry: {type: "MultiPolygon", coordinates: decPoly(GEO.intra[m.id])}}))};
 const otherFC = {type: "FeatureCollection", features: GEO.other.map((o, i) => ({type: "Feature", id: i, properties: {n: o.n, r: o.r || ""}, geometry: {type: "MultiPolygon", coordinates: decPoly(o.g)}}))};
 const shortReg = n => n.replace(/^Республика\s+/, "Респ. ").replace(" автономный округ", " АО").replace(" автономная область", " АО").replace(" область", " обл.").replace(/\s+—.*$/, "").replace(/ - .*$/, "");
 const regFC = {type: "FeatureCollection", features: GEO.regions.map(r => ({type: "Feature", properties: {}, geometry: {type: "MultiLineString", coordinates: r.b.map(decRing)}}))};
@@ -559,7 +579,12 @@ const regLabFC = {type: "FeatureCollection", features: GEO.regions.map(r => ({ty
 const maskFC = {type: "FeatureCollection", features: [{type: "Feature", properties: {}, geometry: {type: "MultiPolygon", coordinates: decPoly(GEO.russia.mask)}}]};
 const outlineFC = {type: "FeatureCollection", features: [{type: "Feature", properties: {}, geometry: {type: "MultiLineString", coordinates: GEO.russia.outline.map(decRing)}}]};
 const bboxOf = id => { let b = [Infinity, Infinity, -Infinity, -Infinity];
-  GEO.mo[id].forEach(p => decRing(p[0]).forEach(([x, y]) => { b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)]; })); return [[b[0], b[1]], [b[2], b[3]]]; };
+  (GEO.mo[id] || GEO.intra[id]).forEach(p => decRing(p[0]).forEach(([x, y]) => { b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)]; })); return [[b[0], b[1]], [b[2], b[3]]]; };
+
+const cityBounds = city => { let b = [Infinity, Infinity, -Infinity, -Infinity];
+  INTRA.mos.filter(m => m.r === city && GEO.intra[m.id]).forEach(m => GEO.intra[m.id].forEach(p => decRing(p[0]).forEach(([x, y]) => {
+    b = [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)]; })));
+  return [[b[0], b[1]], [b[2], b[3]]]; };
 
 // ---------- значки типов на карте: крупные МО видны всегда, мелкие появляются при приближении
 let iconsOn = true;
@@ -589,7 +614,7 @@ const LAYERS = {
        cls: x => x == null ? -1 : x >= 5 ? 4 : x >= 3 ? 3 : x, labels: ["ни разу", "1 раз", "2 раза", "3–4 раза", "5 и больше"]}
 };
 
-let month = T - 1, layer = "type", typeSel = -1, selected = null, legendSel = -1;
+let month = T - 1, layer = "type", typeSel = -1, selected = null, legendSel = -1, capFocus = false, itypeSel = -1;
 const map = new maplibregl.Map({container: "map", style: styleUrl(), bounds: RU_BOUNDS, fitBoundsOptions: {padding: 10},
   minZoom: 1.5, maxZoom: 15, maxBounds: [[-25, 20], [235, 86]], attributionControl: {compact: true}, dragRotate: false, pitchWithRotate: false,
   cooperativeGestures: matchMedia("(pointer: coarse)").matches});
@@ -600,6 +625,11 @@ const dimExpr = (on, off) => ["case", ["boolean", ["feature-state", "dim"], fals
 const fillColor = () => layer === "type"
   ? ["match", ["coalesce", ["feature-state", "c"], -1], ...PAL.slice(0, K).flatMap((c, i) => [i, c]), "#999"]
   : ["match", ["coalesce", ["feature-state", "v"], -1], ...SEQ.flatMap((c, i) => [i, c]), "#bbb"];
+const intraColor = () => layer === "type"
+  ? ["match", ["coalesce", ["feature-state", "c"], -1], ...IPAL.slice(0, IK).flatMap((c, i) => [i, c]), "#999"]
+  : ["match", ["coalesce", ["feature-state", "v"], -1], ...SEQ.flatMap((c, i) => [i, c]), "#bbb"];
+// районы столиц смотрят на крупном масштабе, поэтому их заливка бледнеет слабее
+const intraOpacity = () => ["interpolate", ["linear"], ["zoom"], 5, dimExpr(0.85, 0.08), 12, dimExpr(0.62, 0.05)];
 // при приближении заливка бледнеет, чтобы читались улицы, реки и подписи
 const fillOpacity = () => ["interpolate", ["linear"], ["zoom"], 5, dimExpr(0.68, 0.06), 10, dimExpr(0.28, 0.03)];
 
@@ -621,11 +651,17 @@ function addOurLayers() {
   map.addSource("reglab", {type: "geojson", data: regLabFC});
   map.addLayer({id: "other-fill", type: "fill", source: "other", paint: {"fill-color": "#9aa0a8", "fill-opacity": 0.2}}, firstSymbol);
   map.addLayer({id: "mo-fill", type: "fill", source: "mo", paint: {"fill-color": fillColor(), "fill-opacity": fillOpacity()}}, firstSymbol);
+  map.addSource("intra", {type: "geojson", data: intraFC});
+  map.addLayer({id: "intra-fill", type: "fill", source: "intra", paint: {"fill-color": intraColor(), "fill-opacity": intraOpacity()}}, firstSymbol);
+  map.addLayer({id: "intra-line", type: "line", source: "intra", paint: {"line-color": dark ? "#0b0c0f" : "#ffffff",
+    "line-width": ["interpolate", ["linear"], ["zoom"], 6, 0.2, 9, 0.8, 12, 1.6], "line-opacity": 0.85}}, firstSymbol);
   map.addLayer({id: "mo-line", type: "line", source: "mo", paint: {"line-color": dark ? "#0b0c0f" : "#ffffff",
     "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.15, 7, 0.7, 11, 1.4], "line-opacity": 0.8}}, firstSymbol);
   map.addLayer({id: "reg-line", type: "line", source: "reg", layout: {"line-join": "round"},
     paint: {"line-color": dark ? "#e6e8ec" : "#2b2f37", "line-width": ["interpolate", ["linear"], ["zoom"], 3, 0.7, 8, 1.6], "line-opacity": 0.6}}, firstSymbol);
   map.addLayer({id: "mo-sel", type: "line", source: "mo", filter: ["==", ["id"], selected ?? -1],
+    paint: {"line-color": dark ? "#ffffff" : "#1f2328", "line-width": 3}});
+  map.addLayer({id: "intra-sel", type: "line", source: "intra", filter: ["==", ["id"], selected ?? -1],
     paint: {"line-color": dark ? "#ffffff" : "#1f2328", "line-width": 3}});
   // всё за пределами России закрыто цветом фона карточки: и суша, и подписи соседних стран
   const bgc = getComputedStyle(root).getPropertyValue("--panel").trim() || (dark ? "#1b1f26" : "#f6f7f9");
@@ -655,6 +691,10 @@ function addOurLayers() {
   restyle();
 }
 map.on("style.load", addOurLayers);
+// индикатор загрузки скрывается, когда карта впервые полностью отрисована
+const hideMapLoading = () => document.getElementById("mapLoading")?.classList.add("done");
+map.once("idle", hideMapLoading);
+setTimeout(hideMapLoading, 15000);   // страховка, если подложка не загрузилась
 new MutationObserver(() => map.setStyle(styleUrl(), {diff: false})).observe(root, {attributes: true, attributeFilter: ["data-theme"]});
 
 function restyle() {
@@ -662,15 +702,21 @@ function restyle() {
   const L = LAYERS[layer];
   D.mos.forEach(m => {
     const c = m.L[month], v = L.cls ? L.cls(L.get(m)) : -1;
-    const dim = (typeSel >= 0 && c !== typeSel) || (layer !== "type" && legendSel >= 0 && v !== legendSel);
+    const dim = capFocus || (typeSel >= 0 && c !== typeSel) || (layer !== "type" && legendSel >= 0 && v !== legendSel);
     map.setFeatureState({source: "mo", id: m.id}, {c, v, dim});
+  });
+  if (!map.getSource("intra")) return;
+  INTRA.mos.forEach(m => {
+    const c = m.L[month], v = L.cls ? L.cls(L.get(m)) : -1;
+    const dim = typeSel >= 0 || (capFocus && itypeSel >= 0 && c !== itypeSel) || (layer !== "type" && legendSel >= 0 && v !== legendSel);
+    map.setFeatureState({source: "intra", id: m.id}, {c, v, dim});
   });
 }
 // легенда слоя-показателя: класс можно нажать — на карте останутся только его муниципалитеты
 function renderLegend() {
   const L = LAYERS[layer];
   if (layer === "type") {
-    $("legend").innerHTML = `<span>${typeSel >= 0 ? "Остальные типы приглушены." : "Цвет — тип экономики в выбранном месяце."} Серым — территории вне модели.${iconsOn ? " Значки стоят на крупнейших муниципалитетах, при приближении их больше. Нажмите ▶: при смене типа старый значок рушится и строится новый." : ""}</span>`;
+    $("legend").innerHTML = `<span>${typeSel >= 0 ? "Остальные типы приглушены." : "Цвет — тип экономики в выбранном месяце."} Районы Москвы и Петербурга — свои ${IK} внутригородских типов, оттенки винного: кнопка «Москва и Петербург». Серым — территории вне модели.${iconsOn ? " Значки стоят на крупнейших муниципалитетах, при приближении их больше. Нажмите ▶: при смене типа старый значок рушится и строится новый." : ""}</span>`;
   } else {
     const counts = d3.range(5).map(i => D.mos.filter(m => L.cls(L.get(m)) === i).length);
     $("legend").innerHTML = `<span style="color:var(--ink2)">${L.note}:</span>` + L.labels.map((l, i) =>
@@ -683,6 +729,7 @@ function setLayer(l) {
   layer = l; legendSel = -1;
   document.querySelectorAll("#layers button").forEach(x => x.setAttribute("aria-pressed", x.dataset.l === l));
   if (map.getLayer("mo-fill")) map.setPaintProperty("mo-fill", "fill-color", fillColor());
+  if (map.getLayer("intra-fill")) map.setPaintProperty("intra-fill", "fill-color", intraColor());
   restyle(); renderLegend(); syncIcons();
 }
 document.querySelectorAll("#layers button").forEach(b => b.onclick = () => setLayer(b.dataset.l));
@@ -703,11 +750,16 @@ map.on("mousemove", "mo-fill", e => { const m = byId.get(e.features[0].id); if (
   map.getCanvas().style.cursor = "pointer";
   const extra = layer === "type" ? `Траты: ${fmt(m.cons)} ₽ в месяц` : `${LAYERS[layer].name}: ${LAYERS[layer].val(m)}`;
   placeTip(e, `<b>${m.n}</b><br><span class="muted">${m.r}</span><br><i style="display:inline-block;width:9px;height:9px;border-radius:5px;background:${PAL[c.id]}"></i> ${c.name}<br>${extra}`); });
+map.on("mousemove", "intra-fill", e => { const m = byIdI.get(e.features[0].id); if (!m) return; const c = ICL[m.L[month]];
+  map.getCanvas().style.cursor = "pointer";
+  const extra = layer === "type" ? `Траты: ${fmt(m.cons)} ₽ в месяц` : `${LAYERS[layer].name}: ${LAYERS[layer].val(m)}`;
+  placeTip(e, `<b>${m.n}</b><br><span class="muted">${m.r}, район</span><br><i style="display:inline-block;width:9px;height:9px;border-radius:5px;background:${IPAL[c.id]}"></i> ${c.name}<br>${extra}`); });
 map.on("mousemove", "other-fill", e => { if (map.queryRenderedFeatures(e.point, {layers: ["mo-fill"]}).length) return; const p = e.features[0].properties;
-  placeTip(e, `<b>${p.n}</b><br><span class="muted">${p.r}</span><br>Вне модели: внутригородская территория или нет данных СберИндекса`); });
-["mo-fill", "other-fill"].forEach(l => map.on("mouseleave", l, () => { tip.style.display = "none"; map.getCanvas().style.cursor = ""; }));
+  placeTip(e, `<b>${p.n}</b><br><span class="muted">${p.r}</span><br>Вне модели: нет данных СберИндекса`); });
+["mo-fill", "intra-fill", "other-fill"].forEach(l => map.on("mouseleave", l, () => { tip.style.display = "none"; map.getCanvas().style.cursor = ""; }));
 map.on("click", "mo-fill", e => selectMo(e.features[0].id));
-const zoomToMo = id => { if (GEO.mo[id]) map.fitBounds(bboxOf(id), {maxZoom: 10, padding: 40, duration: 900}); };
+map.on("click", "intra-fill", e => selectMo(e.features[0].id));
+const zoomToMo = id => { if (GEO.mo[id] || GEO.intra[id]) map.fitBounds(bboxOf(id), {maxZoom: GEO.intra[id] ? 12 : 10, padding: 40, duration: 900}); };
 
 // время
 const slider = $("slider");
@@ -715,7 +767,7 @@ slider.max = T - 1; slider.value = month;
 function setMonth(t) { const prev = month; month = t; slider.value = t; $("mlabel").textContent = mlab(D.months[t]); restyle(); updateIcons(prev); }
 
 // значки: прозрачность при выбранном типе, видимость только на слое «Типы»
-function iconOpacity() { return typeSel >= 0 ? ["case", ["==", ["get", "c"], typeSel], 1, 0.18] : 1; }
+function iconOpacity() { return capFocus ? 0.18 : typeSel >= 0 ? ["case", ["==", ["get", "c"], typeSel], 1, 0.18] : 1; }
 function syncIcons() {
   if (!map.getLayer("mo-icons")) return;
   map.setLayoutProperty("mo-icons", "visibility", iconsOn && layer === "type" ? "visible" : "none");
@@ -764,14 +816,35 @@ $("play").onclick = () => {
 
 // кнопки типов
 function renderChips() {
-  $("chips").innerHTML = `<button class="chip" data-i="-1" aria-pressed="${typeSel < 0}">Все типы</button>` +
-    CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${typeSel === c.id}">${badgeImg(c.id, 28)}${c.short || c.name}</button>`).join("");
-  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => selectType(+b.dataset.i));
+  $("chips").innerHTML = `<button class="chip" data-i="-1" aria-pressed="${typeSel < 0 && !capFocus}">Все типы</button>` +
+    CL.map(c => `<button class="chip" data-i="${c.id}" aria-pressed="${typeSel === c.id}">${badgeImg(c.id, 28)}${c.short || c.name}</button>`).join("") +
+    (IK ? `<button class="chip" data-cap="1" aria-pressed="${capFocus}"><span style="display:inline-flex;gap:2px">${IPAL.slice(0, IK).map(c => `<i style="width:7px;height:20px;border-radius:2px;background:${c}"></i>`).join("")}</span>Москва и Петербург</button>` : "");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => b.dataset.cap ? selectCapitals() : selectType(+b.dataset.i));
 }
 function selectType(i) {
-  typeSel = i; selected = null; highlight(null);
+  typeSel = i; capFocus = false; itypeSel = -1; selected = null; highlight(null);
   renderChips(); renderLegend(); restyle(); syncIcons();
   i < 0 ? renderIntro() : renderPortrait(i);
+}
+
+// районы столиц: остальная Россия приглушается, под картой — портрет внутригородской типологии
+function selectCapitals(city) {
+  typeSel = -1; capFocus = true; selected = null; highlight(null);
+  if (layer !== "type") setLayer("type");
+  renderChips(); renderLegend(); restyle(); syncIcons(); renderCapitals();
+  map.fitBounds(cityBounds(city || "Москва"), {padding: 30, duration: 900});
+}
+function renderCapitals() {
+  const share = c => `${fmt(c.msk)} в Москве, ${fmt(c.spb)} в Петербурге`;
+  detail.innerHTML = `<div class="portrait cap">
+    <div><div class="bar6" style="background:linear-gradient(90deg,${IPAL.slice(0, IK).join(",")})"></div><h2>Москва и Петербург: ${IK} типов районов</h2>
+      <p class="desc">${fmt(INTRA.mos.length)} внутригородских территорий не входят в основную модель: это части единого рынка труда, и данных Росстата по ним нет. Поэтому их типы найдены отдельно, той же схемой (сеть сходства → эволюционная спектральная кластеризация), но только по тратам жителей: уровень, структура, сезонность. Число типов выбрано тем же правилом устойчивости.</p>
+      <div class="actions" style="margin-top:14px"><button class="btn" data-city="Москва">Показать Москву</button><button class="btn" data-city="Санкт-Петербург">Показать Петербург</button></div></div>
+    <div class="ilist">${ICL.map(c => `<button class="itype" data-it="${c.id}" aria-pressed="${itypeSel === c.id}">
+        <i style="background:${IPAL[c.id]}"></i><span><b>${c.name}</b><span class="muted"> · ${fmt(c.size)} ${plural(c.size, "район", "района", "районов")}: ${share(c)} · траты ${fmt(c.prof.cons_total_rub)} ₽</span><br><span class="d">${c.desc || ""}</span></span></button>`).join("")}
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Нажмите на тип, чтобы оставить на карте только его районы; ещё раз — показать все.</p></div></div>`;
+  detail.querySelectorAll("[data-city]").forEach(b => b.onclick = () => map.fitBounds(cityBounds(b.dataset.city), {padding: 30, duration: 900}));
+  detail.querySelectorAll("[data-it]").forEach(b => b.onclick = () => { itypeSel = itypeSel === +b.dataset.it ? -1 : +b.dataset.it; restyle(); renderCapitals(); });
 }
 
 // поиск
@@ -779,7 +852,7 @@ const search = $("search"), sugg = $("sugg");
 search.oninput = () => {
   const q = search.value.trim().toLowerCase();
   if (q.length < 2) { sugg.style.display = "none"; return; }
-  const hits = D.mos.filter(m => m.n.toLowerCase().includes(q)).slice(0, 10);
+  const hits = [...D.mos, ...INTRA.mos].filter(m => m.n.toLowerCase().includes(q)).slice(0, 10);
   sugg.innerHTML = hits.map(m => `<button data-id="${m.id}">${m.n} <span class="muted">· ${m.r}</span></button>`).join("") || `<div class="muted" style="padding:10px 14px">Ничего не найдено. Попробуйте часть названия, например «Уфа».</div>`;
   sugg.style.display = "block";
 };
@@ -824,8 +897,41 @@ function bars(obj, labels, ref, typeVal, typeName) {
     return `<div class="row" data-tip="${A(tipHtml)}"><span>${labels[k] || k}</span><span class="bar"><i style="width:${Math.min(100, v * 100 / (ref || 1))}%"></i></span><span class="muted" style="text-align:right">${pct(v)}</span></div>`;
   }).join("") + `</div>`;
 }
-function highlight(id) { if (map.getLayer("mo-sel")) map.setFilter("mo-sel", ["==", ["id"], id ?? -1]); }
+function highlight(id) { ["mo-sel", "intra-sel"].forEach(l => { if (map.getLayer(l)) map.setFilter(l, ["==", ["id"], id ?? -1]); }); }
+// карточка района Москвы или Петербурга: внутригородской тип по месяцам и структура трат
+function selectIntra(id, zoomTo) {
+  const m = byIdI.get(id); if (!m) return;
+  selected = id; highlight(id);
+  const counts = d3.rollup(m.L, v => v.length, x => x), main = [...counts].sort((a, b) => b[1] - a[1])[0][0], c = ICL[main];
+  detail.innerHTML = `<div class="mocard">
+    <div>
+      <h2 style="font-size:clamp(24px,2.8vw,32px)">${m.n}</h2>
+      <p class="muted" style="margin:8px 0 0;font-size:15px">${m.r}, внутригородская территория</p>
+      <div class="strip">${m.L.map((l, i) => `<div data-t="${i}" class="${i === month ? "cur" : ""}" data-tip="${A(`<b>${mlab(D.months[i])}</b><br>${ICL[l].name}<br><span class='muted'>Нажмите, чтобы показать этот месяц на карте</span>`)}" style="background:${IPAL[l]}"></div>`).join("")}</div>
+      <p class="muted" style="margin:0;font-size:13px">Внутригородской тип по месяцам, янв 2023 — дек 2024. Смен типа: ${m.sw}.</p>
+      <p style="margin:16px 0 0;font-size:16px"><i style="display:inline-block;width:10px;height:10px;border-radius:5px;background:${IPAL[main]}"></i> Основной тип: <b>${c.name}</b></p>
+      <p class="muted" style="margin:6px 0 0;font-size:14px;line-height:1.5">${c.desc || ""}</p>
+      <div class="kv">
+        <span>Траты жителя в месяц, дек 2024</span><span>${fmt(m.cons)} ₽</span>
+        <span>Медиана типа</span><span>${fmt(c.prof.cons_total_rub)} ₽</span>
+        <span>Сезонная амплитуда трат</span><span>${f2(m.sa)}</span>
+      </div>
+      <p class="muted" style="font-size:13px;line-height:1.5">Районы столиц типизированы отдельно и только по тратам: данных Росстата о занятости и зарплатах по ним нет.</p>
+    </div>
+    <div>
+      <h4 style="margin-top:4px">Структура трат</h4>${bars(m.sh, SH_RU, 0.6, k => c.prof["share_" + k], c.short || c.name)}
+      <div style="margin-top:24px"><button class="btn" id="backBtn">${chev("M10 3L5 8l5 5")}К районам Москвы и Петербурга</button></div>
+    </div></div>`;
+  detail.querySelectorAll(".strip [data-t]").forEach(el => el.onclick = () => {
+    if (layer !== "type") setLayer("type");
+    setMonth(+el.dataset.t);
+    detail.querySelectorAll(".strip [data-t]").forEach(x => x.classList.toggle("cur", x === el));
+  });
+  $("backBtn").onclick = () => { selected = null; highlight(null); if (!capFocus) { capFocus = true; renderChips(); restyle(); } renderCapitals(); };
+  if (zoomTo) { zoomToMo(id); $("map-s").scrollIntoView({block: "start"}); }
+}
 function selectMo(id, zoomTo) {
+  if (byIdI.has(id)) return selectIntra(id, zoomTo);
   const m = byId.get(id); if (!m) return;
   selected = id; highlight(id);
   const counts = d3.rollup(m.L, v => v.length, x => x), main = [...counts].sort((a, b) => b[1] - a[1])[0][0];
@@ -992,13 +1098,13 @@ function sankey() {
 const indS = share(ind.id), sibS = share(sib.id);
 const STORIES = [
   {tab: "Индустриальные города уступают место", head: `Индустриальный тип сжался с ${pct(indS[0])} до ${pct(indS[T - 1])} территорий`,
-   body: "Больше сотни городов Урала и Поволжья перешли в аграрную глубинку. У них доля обрабатывающих производств в занятости упала с 12% до 7%, а доля маркетплейсов в тратах выросла.",
+   body: "116 муниципалитетов, в основном сельские районы Урала и Поволжья, перешли в аграрную глубинку. У них доля обрабатывающих производств в занятости упала с 12% до 7%, а доля маркетплейсов в тратах выросла.",
    method: "Доля — число МО, отнесённых к индустриальному типу в месяце, делённое на 1815. Тип каждого месяца даёт эволюционная спектральная кластеризация с памятью: месяц сравнивается со сглаженной историей, поэтому разовый всплеск трат тип не меняет. Сдвиг совпадает со сменой года в данных Росстата (2023 → 2024): у перешедших МО доля обработки в занятости упала с 11,7% до 7,3%. На двух годах нельзя отличить реальное сокращение промышленной занятости от изменений учёта, поэтому мы называем это наблюдением, а не причиной.",
    cap: "Доля муниципалитетов индустриального типа по месяцам", hint: "Наведите на столбец, чтобы увидеть месяц; нажмите, чтобы открыть его на карте.", chart: () => barChart(indS, PAL[ind.id], ind.id)},
-  {tab: "Сельская Сибирь дышит по сезонам", head: `Каждое лето сельская Сибирь расширяется — до ${pct(d3.max(sibS))} территорий`,
+  {tab: "Сельская Сибирь и Север дышат по сезонам", head: `Каждое лето тип «Сельская Сибирь и Север» расширяется — до ${pct(d3.max(sibS))} территорий`,
    body: "Соседние районы с летним пиком трат — дачи, Алтай, Байкал — летом переходят в этот тип и к зиме возвращаются. Эффект повторился в оба года.",
-   method: "Доля МО типа «Сельская Сибирь» по месяцам. Признак «летний пик» — насколько траты в июне–августе выше среднего за год; у районов с дачами и туризмом он высокий, и летом их профиль сближается с этим типом. Эффект повторился в 2023 и 2024 годах. Для отдельного МО такой переход сравним с граничным шумом, поэтому правильнее говорить о сезонном смещении границы типа, а не о смене экономики района.",
-   cap: "Доля муниципалитетов типа «Сельская Сибирь» по месяцам", hint: "Нажмите на летний столбец, чтобы увидеть на карте, какие районы присоединяются.", chart: () => barChart(sibS, PAL[sib.id], sib.id)},
+   method: "Доля МО типа «Сельская Сибирь и Север» по месяцам. Признак «летний пик» — насколько траты в июне–августе выше среднего за год; у районов с дачами и туризмом он высокий, и летом их профиль сближается с этим типом. Эффект повторился в 2023 и 2024 годах. Для отдельного МО такой переход сравним с граничным шумом, поэтому правильнее говорить о сезонном смещении границы типа, а не о смене экономики района.",
+   cap: "Доля муниципалитетов типа «Сельская Сибирь и Север» по месяцам", hint: "Нажмите на летний столбец, чтобы увидеть на карте, какие районы присоединяются.", chart: () => barChart(sibS, PAL[sib.id], sib.id)},
   {tab: "Маркетплейсы приходят в глубинку", head: "Доля маркетплейсов растёт во всех восьми типах",
    body: "Быстрее всего — там, где мало офлайн-магазинов. На удалённом Северо-Востоке она остаётся самой низкой: доставка всё ещё ограничивает спрос.",
    method: "Медиана доли маркетплейсов в тратах по МО каждого типа при фиксированном составе типа (каждый МО отнесён к своему основному типу за два года), чтобы видеть изменение экономики, а не состава. Сравниваются январь 2023 и декабрь 2024. Декабрь — пик онлайн-покупок, поэтому по среднегодовым значениям рост скромнее: +34–45% в большинстве типов и +84% на Северо-Востоке (отчёт, §7.3).",
@@ -1361,6 +1467,15 @@ $("csvBtn").onclick = () => {
   const legend = CL.map(c => `# ${c.id + 1} = ${c.name}`).join("\n");
   const blob = new Blob(["﻿" + legend + "\n" + head + "\n" + rows.join("\n")], {type: "text/csv;charset=utf-8"});
   const a = Object.assign(document.createElement("a"), {href: URL.createObjectURL(blob), download: "municipal_types_by_month.csv"});
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$("csvIntraBtn").onclick = () => {
+  const esc = s => `"${String(s).replace(/"/g, '""')}"`;
+  const head = ["territory_id", "district", "city", ...D.months].join(",");
+  const rows = INTRA.mos.map(m => [m.id, esc(m.n), esc(m.r), ...m.L.map(l => l + 1)].join(","));
+  const legend = ICL.map(c => `# ${c.id + 1} = ${c.name}`).join("\n");
+  const blob = new Blob(["\ufeff" + legend + "\n" + head + "\n" + rows.join("\n")], {type: "text/csv;charset=utf-8"});
+  const a = Object.assign(document.createElement("a"), {href: URL.createObjectURL(blob), download: "moscow_spb_district_types_by_month.csv"});
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 $("foot").innerHTML = (D.meta.footer || "") + " Подложка карты: © OpenStreetMap, OpenFreeMap.";

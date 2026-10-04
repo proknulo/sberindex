@@ -91,8 +91,9 @@ def _shift_east(geom):
 
 
 def web_layers(ids: np.ndarray, raw: Path, tol_deg: float = 0.003, tol_other: float = 0.006,
-               tol_region: float = 0.004) -> dict:
-    """Слои для Leaflet: МО модели, остальные МО («нет в модели»), границы и подписи субъектов."""
+               tol_region: float = 0.004, intra_ids: np.ndarray | None = None) -> dict:
+    """Слои для карты: МО основной модели, районы Москвы и Петербурга (внутригородская типология),
+    остальные МО («нет в модели»), границы и подписи субъектов."""
     from shapely import make_valid
     g = gpd.read_file(raw / "dict/t_dict_municipal_districts_poly.gpkg")
     g["territory_id"] = g["territory_id"].astype(int)
@@ -114,13 +115,17 @@ def web_layers(ids: np.ndarray, raw: Path, tol_deg: float = 0.003, tol_other: fl
     g["geometry"] = [_shift_east(x) for x in valid]
 
     sel = g.index.isin(ids)
+    isel = g.index.isin(intra_ids if intra_ids is not None else [])
     mo = {int(t): _enc_geom(geom.simplify(tol_deg, preserve_topology=True), min_area=1e-4)
           for t, geom in g[sel].geometry.items()}
+    # районы столиц мелкие: упрощаем в 10 раз слабее, иначе на приближении они теряют форму
+    intra = {int(t): _enc_geom(geom.simplify(tol_deg / 10, preserve_topology=True), min_area=1e-6)
+             for t, geom in g[isel].geometry.items()}
     # точка внутри каждого МО — место для значка типа на карте
     mo_pt = {int(t): [round(p.x, 4), round(p.y, 4)] for t, p in g[sel].geometry.representative_point().items()}
     other = [{"n": r.municipal_district_name, "r": r.region_name,
               "g": _enc_geom(r.geometry.simplify(tol_other, preserve_topology=True), min_area=1e-4)}
-             for r in g[~sel].itertuples()]
+             for r in g[~sel & ~isel].itertuples()]
 
     reg = g.dropna(subset=["region_code"]).dissolve(by="region_code", aggfunc={"region_name": "first"})
     regions = []
@@ -132,12 +137,12 @@ def web_layers(ids: np.ndarray, raw: Path, tol_deg: float = 0.003, tol_other: fl
         regions.append({"code": int(code), "n": r.region_name,
                         "b": _enc_lines(geom.simplify(tol_region, preserve_topology=True).boundary),
                         "c": [round(pt.y, 3), round(pt.x, 3)], "a": round(geom.area, 1)})
-    return {"q": Q, "mo": mo, "pt": mo_pt, "other": other, "regions": regions, "russia": russia}
+    return {"q": Q, "mo": mo, "pt": mo_pt, "intra": intra, "other": other, "regions": regions, "russia": russia}
 
 
-def write_geo_js(ids: np.ndarray, raw: Path, landing: Path) -> None:
+def write_geo_js(ids: np.ndarray, raw: Path, landing: Path, intra_ids: np.ndarray | None = None) -> None:
     import json
-    layers = web_layers(ids, raw)
+    layers = web_layers(ids, raw, intra_ids=intra_ids)
     js = "window.GEO = " + json.dumps(layers, ensure_ascii=False, separators=(",", ":")) + ";"
     (landing / "geo.js").write_text(js, encoding="utf-8")
     print("landing/geo.js", round(len(js) / 1e6, 2), "MB")
@@ -155,5 +160,7 @@ if __name__ == "__main__":
     cfg = yaml.safe_load(open(ap.parse_args().config, encoding="utf-8"))
     land = Path(cfg["paths"]["landing"])
     s = (land / "data.js").read_text(encoding="utf-8")
-    ids = np.array([m["id"] for m in json.loads(s[s.index("{"):s.rindex("}") + 1])["mos"]])
-    write_geo_js(ids, Path(cfg["paths"]["raw"]), land)
+    d = json.loads(s[s.index("{"):s.rindex("}") + 1])
+    ids = np.array([m["id"] for m in d["mos"]])
+    intra_ids = np.array([m["id"] for m in (d.get("intra") or {}).get("mos", [])])
+    write_geo_js(ids, Path(cfg["paths"]["raw"]), land, intra_ids)
