@@ -6,12 +6,15 @@
     python run.py robustness   проверки надёжности (~5 мин)
     python run.py intracity    внутригородская структура Москвы и Санкт-Петербурга
     python run.py figures      рисунки для отчёта (results/figures)
-    python run.py landing      данные для лендинга (landing/data.js, landing/geo.js)
+    python run.py landing      данные для лендинга (landing/data/data.js, landing/data/geo.js)
+    python run.py map          пересобрать только геометрию карты лендинга
+    python run.py catalog      каталог наборов СберИндекса → data/sberindex_api/list.json
     python run.py test         тесты индексов качества
     python run.py serve        открыть лендинг: http://localhost:8000
     python run.py all          data → pipeline → robustness → intracity → figures → landing → test
 
-Все шаги после setup выполняются интерпретатором из .venv, если он есть.
+Все шаги после setup выполняются интерпретатором из .venv, если он есть. Внутри это команды
+`python -m sbx <шаг>` — их можно вызывать и напрямую (см. src/sbx/__main__.py).
 """
 from __future__ import annotations
 
@@ -26,15 +29,9 @@ VENV = ROOT / ".venv"
 VPY = VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 CFG = ["--config", "configs/default.yaml"]
 
-STEPS = {
-    "data": [["scripts/get_data.py"], ["scripts/download_rosstat.py"]],
-    "pipeline": [["-m", "sbx.pipeline", *CFG]],
-    "robustness": [["-m", "sbx.robustness", *CFG]],
-    "intracity": [["-m", "sbx.intracity", *CFG]],
-    "figures": [["-m", "sbx.figures", *CFG]],
-    "landing": [["-m", "sbx.landing", *CFG]],
-    "test": [["-m", "pytest", "-q", "tests"]],
-}
+STEPS = {step: [["-m", "sbx", step, *CFG]] for step in
+         ("data", "pipeline", "robustness", "intracity", "figures", "landing", "map", "catalog")}
+STEPS["test"] = [["-m", "pytest", "-q", "tests"]]
 ALL = ["data", "pipeline", "robustness", "intracity", "figures", "landing", "test"]
 
 
@@ -57,7 +54,7 @@ def setup() -> None:
         print("> создаю .venv", flush=True)
         venv.create(VENV, with_pip=True)
     subprocess.run([str(VPY), "-m", "pip", "install", "-q", "--upgrade", "pip"], cwd=ROOT, check=True)
-    subprocess.run([str(VPY), "-m", "pip", "install", "-q", "-r", "requirements.txt", "pytest"], cwd=ROOT, check=True)
+    subprocess.run([str(VPY), "-m", "pip", "install", "-q", "-r", "requirements.txt"], cwd=ROOT, check=True)
     subprocess.run([str(VPY), "-m", "pip", "install", "-q", "-e", "."], cwd=ROOT, check=True)
     print("готово: окружение .venv")
 

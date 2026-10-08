@@ -32,6 +32,7 @@ from .data import CAT_SHORT, CATEGORIES, OKVED_GROUPS, OKVED_TOTAL, Dataset
 
 @dataclass
 class Features:
+    """Признаки модели и их интерпретируемые значения."""
     X: np.ndarray                 # [T, N, D] взвешенные стандартизованные признаки
     names: list[str]
     blocks: dict[str, list[int]]  # блок -> индексы колонок
@@ -40,6 +41,7 @@ class Features:
 
 
 def clr(shares: np.ndarray, eps: float) -> np.ndarray:
+    """Центрированное лог-отношение долей (геометрия Эйчисона) с псевдосчётом eps."""
     s = shares + eps
     s = s / s.sum(-1, keepdims=True)
     ls = np.log(s)
@@ -62,7 +64,6 @@ def _annual_panel(ds: Dataset, years: list[int]):
     emp = ds.rosstat.get("employees")
     wage = ds.rosstat.get("wage")
     pop = ds.rosstat.get("population")
-    all_years = list(range(min(years) - 3, max(years) + 1))
 
     e = emp.assign(sector=emp.okved2.map(OKVED_GROUPS))
     e_sec = e.dropna(subset=["sector"]).groupby(["territory_id", "god", "sector"]).value.sum().unstack("sector")
@@ -96,7 +97,8 @@ def _annual_panel(ds: Dataset, years: list[int]):
 
 
 def build_features(ds: Dataset, cfg: dict) -> Features:
-    fc, T, N = cfg["features"], len(ds.months), len(ds.mo)
+    """Признаки x_{i,t}: 25 столбцов в шести блоках, винзоризация, стандартизация по панели, веса блоков."""
+    fc, T = cfg["features"], len(ds.months)
     eps = fc["clr_pseudocount"]
     ids = ds.mo.index.to_numpy()
     cons = _smooth(ds.cons, cfg["data"]["smoothing_window"])
@@ -159,7 +161,7 @@ def build_features(ds: Dataset, cfg: dict) -> Features:
         a = annual[annual.year == y].set_index("territory_id").reindex(ids)
         # доли секторов импутируем как доли, затем нормируем
         M = np.column_stack([helper, a[ann_cols].to_numpy()])
-        M = KNNImputer(n_neighbors=10, weights="distance").fit_transform(M)[:, helper.shape[1]:]
+        M = KNNImputer(n_neighbors=fc.get("impute_neighbors", 10), weights="distance").fit_transform(M)[:, helper.shape[1]:]
         a[ann_cols] = M
         filled.append(a)
 
@@ -167,6 +169,7 @@ def build_features(ds: Dataset, cfg: dict) -> Features:
     names, blocks, cols = [], {}, []
 
     def add(block, fname, arr):  # arr: [N,T]
+        """Добавить признак в блок."""
         blocks.setdefault(block, []).append(len(names))
         names.append(fname)
         cols.append(arr)
